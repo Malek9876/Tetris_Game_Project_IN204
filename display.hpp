@@ -1,20 +1,22 @@
 #ifndef DISPLAY
 #define DISPLAY
 
-#include <SFML/Graphics.hpp>
-#include <chrono>
-#include <iostream>
-
-#include "config.inl"
-#include "network_declarations.inl"
-
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include <vector>
+#include <string>
 #include "logic.hpp"
 #include "server.hpp"
 #include "client.hpp"
+#include <thread>
 
-class Display
-{
+class Display {
 private:
+    GLuint VAO, VBO;
+    Logic game;
+    Server host;
+    Client player;
+    // Other member variables...
     int xSize;
     int ySize;
 
@@ -29,10 +31,10 @@ private:
     bool colorAug;
 
     bool namecheck;
-    short my_pos = 0;
+    short my_pos;
 
     bool thread_runing;
-    Thread* networking;
+    std::thread* networking; // Use std::thread instead of Thread
 
     short server_choosen;
     bool reload;
@@ -41,40 +43,16 @@ private:
     
     int level;
 
-    string player_Name;
+    std::string player_Name;
     
-    sf::RenderWindow window;
-    sf::Event event;
-    
-    Logic game;
 
-    Server host;
-    Client player; 
 public:
     Display();
-    void Run();
-    void Events();
-    void DrawTitleScreen();
-    void Draw_Multiplayer_Name_Screen();
-    void Draw_Multiplayer_Option_Screen();
-    void Draw_Multiplayer_Join_Screen();
-    void Draw_Multiplayer_Create_Screen();
-    void Draw_Loading();
-    void Draw_Legend_SP();
-    void Draw_Legend_MP();
-    void Draw_Tutorial();
-    void Draw_Lobby();
-    void DrawGame(vector<string>);
-    void DrawPlayers(vector<string>,int,vector<string>,int,vector<string>,int);
-    void DrawPlayers_Guest();
-    void DrawNext(vector<string>);
-    void DrawPoints(int, int, int);
-    void DrawGameOver(int, int, int);
-    void Writing();
-    void DrawBackground();
-    void DrawPause();
-    void DrawLevelUp();
-    void ChangeColor();
+    void Run(GLFWwindow* window);
+    void Render();
+    void InitializeOpenGL();
+    // Other methods...
     ~Display();
 };
+
 #endif

@@ -6,8 +6,8 @@
 #include <vector>
 #include "pixel.hpp"
 #include <chrono>
-
 #include "config.inl"
+
 class Tetromino
 {
 private:
@@ -18,12 +18,13 @@ private:
 public:
     Tetromino();
     Tetromino(Pixel, int);
-    Tetromino(Tetromino &);
-    std::vector<Pixel> getPixels();
-    std::string getColor();
-    int GetId();
-    void setPixels(std::vector<Pixel>);
+    Tetromino(const Tetromino &);
+    std::vector<Pixel> getPixels() const;
+    std::string getColor() const;
+    int GetId() const;
+    void setPixels(const std::vector<Pixel>&);
     void deactivate();
     ~Tetromino();
 };
+
 #endif

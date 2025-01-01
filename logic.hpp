@@ -5,10 +5,10 @@
 #include <string>
 #include <algorithm>
 #include "tetromino.hpp"
-
 #include "config.inl"
 
 using namespace std;
+
 class Logic
 {
 private:
@@ -39,6 +39,7 @@ private:
 
     int logicX;
     int logicY;
+
 public:
     Logic(int argRows, int argColumns);
     vector<string> getMatrix() const;
@@ -70,4 +71,5 @@ public:
 
     ~Logic();
 };
+
 #endif

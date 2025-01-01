@@ -4,6 +4,7 @@
 Logic::Logic(int argX, int argY){
     coorZero.setX(argX/2 - 1);
     coorZero.setY(amount_of_pixels - 1);
+    coorZero.setZ(0); // Initialize Z coordinate
     colorMatrix.resize(argX * argY);
     logicMatrix.resize(argX * argY);
 
@@ -28,30 +29,39 @@ Logic::Logic(int argX, int argY){
     nextPiece = newPiece;
     newTetromino();
 }
+
 vector<string> Logic::getMatrix() const{
     return colorMatrix;
 }
+
 vector<string> Logic::getNext(){
     return nextMatrix;
 }
+
 int Logic::getScore(){
     return score;
 }
+
 int Logic::getLevel(){
     return level;
 }
+
 int Logic::getRows(){
     return rows;
 }
+
 int Logic::GetSlowness(){
     return slowness;
 }
+
 void Logic::setStatus(int arg){
     status = arg;
 }
+
 int Logic::getStatus(){
     return status;
 }
+
 void Logic::newTetromino(){
     special_counter++;
     activePiece = nextPiece;
@@ -69,12 +79,14 @@ void Logic::newTetromino(){
     fillNextMatrix();
     updateMatrix();
 }
+
 void Logic::fillNextMatrix(){
     vector<Pixel> positions = nextPiece.getPixels();
     Pixel ref = positions[0];
     Pixel newRef;
     newRef.setX(2);
     newRef.setY(2);
+    newRef.setZ(0); // Initialize Z coordinate
     for (unsigned i = 0; i < nextMatrix.size(); i++)
     {
         nextMatrix[i] = "";
@@ -83,9 +95,11 @@ void Logic::fillNextMatrix(){
     {
         positions[i].setX(positions[i].getX() - ref.getX() + newRef.getX());
         positions[i].setY(positions[i].getY() - ref.getY() + newRef.getY());
+        positions[i].setZ(positions[i].getZ() - ref.getZ() + newRef.getZ());
         nextMatrix[positions[i].getX() + 6 * positions[i].getY()] = nextPiece.getColor();
     }
 }
+
 void Logic::updateMatrix(){
     Overlay();
     vector<Pixel> positions = activePiece.getPixels();
@@ -109,9 +123,11 @@ void Logic::updateMatrix(){
         colorMatrix[positions[i].getX() + logicX * positions[i].getY()] = activePiece.getColor();
     }    
 }
+
 void Logic::moveTetromino(char keycode){
     int modX = 0;
     int modY = 0;
+    int modZ = 0;
     bool invalidMove = false;
     locked = false;
 
@@ -126,6 +142,12 @@ void Logic::moveTetromino(char keycode){
         case 'r':
             modX = 1;
             break;
+        case 'u':
+            modZ = 1;
+            break;
+        case 'b':
+            modZ = -1;
+            break;
     }
 
     savedPos = activePiece.getPixels();
@@ -135,6 +157,7 @@ void Logic::moveTetromino(char keycode){
     {
         newPos[i].modX(modX);
         newPos[i].modY(modY);
+        newPos[i].modZ(modZ);
     }
 
     for (unsigned i = 0; i < newPos.size(); i++)
@@ -170,6 +193,7 @@ void Logic::moveTetromino(char keycode){
     }
     updateMatrix();     
 }
+
 void Logic::rotateTetromino(){
     locked = false;
     int biggestYRef = -1;
@@ -252,6 +276,7 @@ void Logic::rotateTetromino(){
     }    
     updateMatrix();
 }
+
 void Logic::deleteRow(){
     vector<int> rowsToCheck, rowsToDelete;
     bool canBeDeleted;
@@ -299,6 +324,7 @@ void Logic::deleteRow(){
         }    
     }  
 }
+
 void Logic::CalcLevel(){
     while (localRows >= rows_to_level)
     {
@@ -307,9 +333,11 @@ void Logic::CalcLevel(){
         localRows -= rows_to_level;
     }    
 }
+
 void Logic::CalcSlowness(){
     slowness = (slowness > min_speed) ? slowness - step_speed : min_speed;
 }
+
 void Logic::CalcScore(int argRows){
    switch (argRows)
    {
@@ -327,6 +355,7 @@ void Logic::CalcScore(int argRows){
        break;
    }
 }
+
 void Logic::CheckGameOver(){
     for (int i = 0; i < logicX; i++)
     {
@@ -337,6 +366,7 @@ void Logic::CheckGameOver(){
         }        
     }    
 }
+
 void Logic::CleanUp(){
     for (int i = 0; i < logicX * logicY; i++)
     {
@@ -356,6 +386,7 @@ void Logic::CleanUp(){
     nextPiece = newPiece;
     newTetromino();    
 }
+
 void Logic::Overlay(){
     prev_overlay = curr_overlay;
     curr_overlay = activePiece.getPixels();
@@ -380,6 +411,7 @@ void Logic::Overlay(){
         curr_overlay[i].modY(-1);
     }
 }
+
 void Logic::ActivateHardDrop(){
     hardDrop = true;
     while (hardDrop)
@@ -387,5 +419,6 @@ void Logic::ActivateHardDrop(){
         moveTetromino('d');
     } 
 }
+
 Logic::~Logic(){
 }
