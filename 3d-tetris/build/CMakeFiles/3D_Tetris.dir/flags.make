@@ -4,7 +4,7 @@
 # compile CXX with /usr/bin/c++
 CXX_DEFINES = 
 
-CXX_INCLUDES = -I/home/elyes/Documents/GitHub/Tetris_Game_Project_IN204/3d-tetris/src
+CXX_INCLUDES = -I/home/elyes/Documents/GitHub/Tetris_Game_Project_IN204/3d-tetris/src/include
 
 CXX_FLAGS = -std=gnu++11
 

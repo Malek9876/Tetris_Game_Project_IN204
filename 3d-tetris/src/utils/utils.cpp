@@ -4,7 +4,8 @@
 #include <string>
 #include <fstream>
 #include <sstream>
-
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb/stb_image.h"
 // Function to load a shader from a file
 GLuint loadShader(const std::string& filePath, GLenum shaderType) {
     std::ifstream shaderFile(filePath);

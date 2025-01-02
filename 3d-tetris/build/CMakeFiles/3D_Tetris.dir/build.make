@@ -109,9 +109,11 @@ CMakeFiles/3D_Tetris.dir/src/utils/utils.cpp.s: cmake_force
 3D_Tetris: CMakeFiles/3D_Tetris.dir/src/utils/utils.cpp.o
 3D_Tetris: CMakeFiles/3D_Tetris.dir/build.make
 3D_Tetris: /usr/lib/x86_64-linux-gnu/libGL.so
-3D_Tetris: /usr/lib/x86_64-linux-gnu/libGLU.so
-3D_Tetris: /usr/lib/x86_64-linux-gnu/libglfw.so.3.3
+3D_Tetris: /usr/lib/x86_64-linux-gnu/libglut.so
 3D_Tetris: /usr/lib/x86_64-linux-gnu/libGLEW.so
+3D_Tetris: /usr/lib/x86_64-linux-gnu/libglfw.so.3.3
+3D_Tetris: /usr/lib/x86_64-linux-gnu/libXmu.so
+3D_Tetris: /usr/lib/x86_64-linux-gnu/libXi.so
 3D_Tetris: CMakeFiles/3D_Tetris.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/elyes/Documents/GitHub/Tetris_Game_Project_IN204/3d-tetris/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX executable 3D_Tetris"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/3D_Tetris.dir/link.txt --verbose=$(VERBOSE)
