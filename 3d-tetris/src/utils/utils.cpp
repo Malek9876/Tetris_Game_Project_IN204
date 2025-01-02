@@ -1,12 +1,12 @@
 #include <GL/glew.h>
-#include <GLFW/glfw3.h>
 #include <iostream>
-#include <string>
 #include <fstream>
 #include <sstream>
+#include <string>
+#include "utils.hpp"
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb/stb_image.h"
-// Function to load a shader from a file
+#include "../include/stb_image.h"
+
 GLuint loadShader(const std::string& filePath, GLenum shaderType) {
     std::ifstream shaderFile(filePath);
     if (!shaderFile.is_open()) {
@@ -30,15 +30,12 @@ GLuint loadShader(const std::string& filePath, GLenum shaderType) {
     if (!success) {
         char infoLog[512];
         glGetShaderInfoLog(shader, 512, nullptr, infoLog);
-        std::cerr << "Shader compilation error: " << infoLog << std::endl;
-        glDeleteShader(shader);
-        return 0;
+        std::cerr << "Shader compilation failed: " << infoLog << std::endl;
     }
 
     return shader;
 }
 
-// Function to load a texture from a file
 GLuint loadTexture(const std::string& filePath) {
     GLuint texture;
     glGenTextures(1, &texture);
