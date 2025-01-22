@@ -101,13 +101,36 @@ class tetromino {
 		}
 		*blocks = rotated;
 	}
-	void displayCube(int x, int y, int z, int color) {
-		glPushMatrix();
-		glTranslatef(x, y, z);
-		glColor3f(1, 0, 0);
-		glutSolidCube(1);
-		glPopMatrix();
-	}
+	void displayTetromino(const tetromino& t, int x, int y, int z, int color) {
+    const auto& blocks = t.getBlocks();
+
+    // Set color based on the color parameter
+    switch (color) {
+        case 0: glColor3f(1, 0, 0); break; // Red
+        case 1: glColor3f(0, 1, 0); break; // Green
+        case 2: glColor3f(0, 0, 1); break; // Blue
+        case 3: glColor3f(1, 1, 0); break; // Yellow
+        case 4: glColor3f(1, 0, 1); break; // Magenta
+        case 5: glColor3f(0, 1, 1); break; // Cyan
+        default: glColor3f(1, 1, 1); break; // White
+    }
+
+    // Draw each block of the Tetromino
+    for (size_t i = 0; i < blocks.size(); ++i) {
+        for (size_t j = 0; j < blocks[i].size(); ++j) {
+            for (size_t k = 0; k < blocks[i][j].size(); ++k) {
+                if (blocks[i][j][k] != 0) {
+                    glPushMatrix();
+                    glTranslatef(x + i, y + j, z + k);
+                    glutSolidCube(1);
+                    glPopMatrix();
+                }
+            }
+        }
+    }
+}
+	
+
 
 
 using namespace std;
@@ -228,27 +251,27 @@ void init() {
 	
 	glShadeModel( GL_SMOOTH );
 }
-void display() {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	displayGrid();
-	
-	glEnable(GL_LIGHTING);
-	glEnable(GL_LIGHT0);
-	
-	//displayCube(indexX, indexY, indexZ, randNum);
-	//displayAll();
-	
-	glDisable(GL_LIGHTING);
-	glDisable(GL_LIGHT0);
-	
-	/*if( (PAUSE==1) && (START==0) ) {
-		func();
-		displaySelectedCube();
-	}*/
-		
-	glutSwapBuffers();
-	glFlush();
+
+	void display() {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    displayGrid();
+
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+
+    // Create a Tetromino of shape 'T'
+    tetromino t(tetromino::I);
+
+    // Display the Tetromino at position (1, 2, 3) with color 0 (Red)
+    displayTetromino(t, 1, 2, 3, 0);
+
+    glDisable(GL_LIGHTING);
+    glDisable(GL_LIGHT0);
+
+    glutSwapBuffers();
+    glFlush();
 }
 
 
@@ -264,6 +287,7 @@ int main(int argc, char **argv) {
 	glutDisplayFunc(display);													// register Display Function
 	//glutKeyboardFunc(keyboardFunc);
 	//glutSpecialFunc(specialFunc);
-	glutMainLoop();																// run GLUT mainloop
+	glutMainLoop();	
+																// run GLUT mainloop
 return 0;
 }
