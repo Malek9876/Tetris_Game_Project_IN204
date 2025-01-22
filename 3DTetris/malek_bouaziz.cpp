@@ -5,6 +5,110 @@
 #include <iostream>
 #include <list>
 #include <queue>
+#include <memory>
+
+class tetromino {
+	public:
+		// Tetromino shapes
+		enum Shape { I, J, L, O, S, T, Z };
+
+		// Constructor
+		tetromino(Shape shape) : shape(shape) {
+			initializeShape();
+		}
+
+		// Get the shape of the tetromino
+		Shape getShape() const {
+			return shape;
+		}
+
+		// Get the blocks of the tetromino
+		const std::vector<std::vector<std::vector<int>>>& getBlocks() const {
+			return blocks;
+		}
+
+	private:
+		Shape shape;
+		std::vector<std::vector<std::vector<int>>> blocks;
+
+		// Initialize the blocks of the tetromino based on its shape
+		void initializeShape() {
+			switch (shape) {
+				case I:
+					blocks = {{{1, 1, 1, 1}}};
+					break;
+				case J:
+					blocks = {{{1, 0, 0}, {1, 1, 1}}};
+					break;
+				case L:
+					blocks = {{{0, 0, 1}, {1, 1, 1}}};
+					break;
+				case O:
+					blocks = {{{1, 1}, {1, 1}}};
+					break;
+				case S:
+					blocks = {{{0, 1, 1}, {1, 1, 0}}};
+					break;
+				case T:
+					blocks = {{{0, 1, 0}, {1, 1, 1}}};
+					break;
+				case Z:
+					blocks = {{{1, 1, 0}, {0, 1, 1}}};
+					break;
+			}
+		}
+	};
+	void rotateX(tetromino& t) {
+		auto blocks = std::make_shared<std::vector<std::vector<std::vector<int>>>>(t.getBlocks());
+		int n = blocks->size();
+		std::vector<std::vector<std::vector<int>>> rotated(n, std::vector<std::vector<int>>(n, std::vector<int>(n)));
+
+		for (int i = 0; i < n; ++i) {
+			for (int j = 0; j < n; ++j) {
+				for (int k = 0; k < n; ++k) {
+					rotated[i][j][k] = (*blocks)[i][n - 1 - k][j];
+				}
+			}
+		}
+		*blocks = rotated;
+	}
+
+	void rotateY(tetromino& t) {
+		auto blocks = std::make_shared<std::vector<std::vector<std::vector<int>>>>(t.getBlocks());
+		int n = blocks->size();
+		std::vector<std::vector<std::vector<int>>> rotated(n, std::vector<std::vector<int>>(n, std::vector<int>(n)));
+
+		for (int i = 0; i < n; ++i) {
+			for (int j = 0; j < n; ++j) {
+				for (int k = 0; k < n; ++k) {
+					rotated[i][j][k] = (*blocks)[n - 1 - k][j][i];
+				}
+			}
+		}
+		*blocks = rotated;
+	}
+	void rotateZ(tetromino& t) {
+		auto blocks = std::make_shared<std::vector<std::vector<std::vector<int>>>>(t.getBlocks());
+		int n = blocks->size();
+		std::vector<std::vector<std::vector<int>>> rotated(n, std::vector<std::vector<int>>(n, std::vector<int>(n)));
+
+		for (int i = 0; i < n; ++i) {
+			for (int j = 0; j < n; ++j) {
+				for (int k = 0; k < n; ++k) {
+					rotated[i][j][k] = (*blocks)[j][n - 1 - i][k];
+				}
+			}
+		}
+		*blocks = rotated;
+	}
+	void displayCube(int x, int y, int z, int color) {
+		glPushMatrix();
+		glTranslatef(x, y, z);
+		glColor3f(1, 0, 0);
+		glutSolidCube(1);
+		glPopMatrix();
+	}
+
 
 using namespace std;
 int eyeX = 30;
@@ -32,6 +136,7 @@ int selectZ = 0;
 int randNum=1;
 
 /* lighting */
+
 GLfloat lightPos[] = { 16, 16, 16, 1.0f };
 GLfloat whiteLight[] = { 0.2f, 0.2f, 0.2f, 0.2f };
 GLfloat sourceLight[] = { 0.8f, 0.8f, 0.8f, 1.0f };
@@ -90,8 +195,19 @@ void displayGrid() {
 }
 
 void init() {
+		// Enable lighting
+	glEnable(GL_LIGHTING);
+
+	// Set up light 0
+	glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
+	glLightfv(GL_LIGHT0, GL_AMBIENT, whiteLight);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, sourceLight);
+
+	// Enable light 0
+	glEnable(GL_LIGHT0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glClearColor(0.0, 0.0, 0.0, 1.0);
+	glClearColor(0.2, 0.2, 0.2, 1.0); //black background
+	//glClearColor(1.0, 1.0, 1.0, 1.0); //white background
 	
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
