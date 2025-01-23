@@ -105,16 +105,17 @@ class tetromino {
     const auto& blocks = t.getBlocks();
 
     // Set color based on the color parameter
+	GLfloat r, g, b;
     switch (color) {
-        case 0: glColor3f(1, 0, 0); break; // Red
-        case 1: glColor3f(0, 1, 0); break; // Green
-        case 2: glColor3f(0, 0, 1); break; // Blue
-        case 3: glColor3f(1, 1, 0); break; // Yellow
-        case 4: glColor3f(1, 0, 1); break; // Magenta
-        case 5: glColor3f(0, 1, 1); break; // Cyan
-        default: glColor3f(1, 1, 1); break; // White
+        case 0: r = 1; g = 0; b = 0; break; // Red
+        case 1: r = 0; g = 1; b = 0; break; // Green
+        case 2: r = 0; g = 0; b = 1; break; // Blue
+        case 3: r = 1; g = 1; b = 0; break; // Yellow
+        case 4: r = 1; g = 0; b = 1; break; // Magenta
+        case 5: r = 0; g = 1; b = 1; break; // Cyan
+        default: r = 1; g = 1; b = 1; break; // White
     }
-
+	
     // Draw each block of the Tetromino
     for (size_t i = 0; i < blocks.size(); ++i) {
         for (size_t j = 0; j < blocks[i].size(); ++j) {
@@ -122,7 +123,14 @@ class tetromino {
                 if (blocks[i][j][k] != 0) {
                     glPushMatrix();
                     glTranslatef(x + i, y + j, z + k);
+					glColor3f(r, g, b);
                     glutSolidCube(1);
+
+					// Draw wireframe edges
+					glLineWidth(3.0f);// Set edge width to 2
+                    glColor3f(0, 0, 0); // Set edge color to black
+                    glutWireCube(1.01); // Slightly larger to avoid z-fighting
+
                     glPopMatrix();
                 }
             }
@@ -184,7 +192,7 @@ int cubeNum=0;
 int SCORE=0;
 void displayGrid() {
 	int n = 15;		// grid length
-
+	glLineWidth(3.0f);	// Set edge width to 2
 		/* white grid */
 		glBegin(GL_LINES);
 			for(int i=0; i<=n; i++) {
@@ -262,7 +270,7 @@ void init() {
     glEnable(GL_LIGHT0);
 
     // Create a Tetromino of shape 'T'
-    tetromino t(tetromino::I);
+    tetromino t(tetromino::Z);
 
     // Display the Tetromino at position (1, 2, 3) with color 0 (Red)
     displayTetromino(t, 1, 2, 3, 0);
