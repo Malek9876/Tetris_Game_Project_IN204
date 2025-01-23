@@ -1,4 +1,4 @@
-#include <GL/gl.h>	 // Open Graphics Library (OpenGL) header
+#include <GL/gl.h>   // Open Graphics Library (OpenGL) header
 #include <GL/glut.h> // The GL Utility Toolkit (GLUT) Header
 #include <GL/glu.h>
 
@@ -7,6 +7,7 @@
 #include <queue>
 #include <memory>
 #include <vector>
+#include <cmath>
 
 // Tetromino class definition (as provided earlier)
 class tetromino {
@@ -15,7 +16,7 @@ public:
     enum Shape { I, J, L, O, S, T, Z };
 
     // Constructor
-    tetromino(Shape shape) : shape(shape) {
+    tetromino(Shape shape) : shape(shape), posY(0.0f), posX(5.0f), posZ(6.5f) {
         initializeShape();
     }
 
@@ -29,10 +30,30 @@ public:
         return blocks;
     }
 
+    // Update the position of the tetromino
+    void updatePosition(float fallSpeed) {
+        posY -= fallSpeed;
+        std::cout<<posY<<std::endl;
+        if (posY  = 00.0f) posY = 00.0f; // Reset position if it goes below the grid
+    }
+
+    // Get the current Y position of the tetromino
+    float getPositionY() const {
+        return posY;
+    }
+    float getPositionX() const {
+        return posX;
+    }
+    float getPositionZ() const {
+        return posZ;
+    }
+
 private:
     Shape shape;
     std::vector<std::vector<std::vector<int>>> blocks;
-
+    float posY;
+    float posX;
+    float posZ;
     // Initialize the blocks of the tetromino based on its shape
     void initializeShape() {
         switch (shape) {
@@ -62,9 +83,11 @@ private:
 };
 
 // Function to display a Tetromino
-void displayTetromino(const tetromino& t, int x, int y, int z, int color) {
+void displayTetromino(const tetromino& t, int color) {
     const auto& blocks = t.getBlocks();
-
+    float y = t.getPositionY();
+    float x = t.getPositionX();
+    float z = t.getPositionZ();
     // Set color based on the color parameter
     GLfloat r, g, b;
     switch (color) {
@@ -110,9 +133,19 @@ void displayTetromino(const tetromino& t, int x, int y, int z, int color) {
 float angleX = 0.0f;
 float angleY = 0.0f;
 float zoom = 1.0f;
+float panX = 0.0f;
+float panY = 0.0f;
 int lastMouseX = 0;
 int lastMouseY = 0;
 bool isDragging = false;
+bool isPanning = false;
+float accumulatedAngleX = 0.0f;
+float accumulatedAngleY = 0.0f;
+
+// Global variables for Tetrominoes and fall speed
+std::vector<tetromino> tetrominoes;
+float fallSpeed = 0.0f; // Speed at which the Tetrominoes fall
+int fallInterval = 1000; // Time interval in milliseconds
 
 // Function to initialize OpenGL settings
 void init() {
@@ -128,11 +161,10 @@ void init() {
 
 // Function to display the grid
 void displayGrid() {
-	int n = 15;		// grid length
-
-		/* white grid */
-		glBegin(GL_LINES);
-			for(int i=0; i<=n; i++) {
+    glColor3f(0.5, 0.5, 0.5); // Set grid color to gray
+    int n=15; // Grid length
+    glBegin(GL_LINES);
+    for(int i=0; i<=n; i++) {
 				// set colour
 				glColor3f(1, 0, 0);
 
@@ -159,7 +191,7 @@ void displayGrid() {
 				glVertex3f(0, i, 0);
 				glVertex3f(n, i, 0);
 			}
-		glEnd();
+    glEnd();
 }
 
 // Display function to render the scene
@@ -167,22 +199,32 @@ void display() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glPushMatrix();
+    glTranslatef(panX, panY, 0.0f); // Apply panning
     glScalef(zoom, zoom, zoom); // Apply zoom
-    glRotatef(angleX, 1.0, 0.0, 0.0);
-    glRotatef(angleY, 0.0, 1.0, 0.0);
+    glRotatef(accumulatedAngleX, 1.0, 0.0, 0.0);
+    glRotatef(accumulatedAngleY, 0.0, 1.0, 0.0);
 
     displayGrid();
 
-    // Create a Tetromino of shape 'T'
-    tetromino t(tetromino::T);
-
-    // Display the Tetromino at position (1, 2, 3) with color 0 (Red)
-    displayTetromino(t, 1, 2, 3, 0);
+    // Display all Tetrominoes
+    for (size_t i = 0; i < tetrominoes.size(); ++i) {
+        displayTetromino(tetrominoes[i], i % 6); // Display each Tetromino with a different color
+    }
 
     glPopMatrix();
 
     glutSwapBuffers();
     glFlush();
+}
+
+// Timer function to update the Tetrominoes' positions
+void timer(int value) {
+    // for (auto& t : tetrominoes) {
+    //     t.updatePosition(fallSpeed); // Update the position of each Tetromino
+    // }
+
+    glutPostRedisplay(); // Request a redraw
+    glutTimerFunc(fallInterval, timer, 0); // Set the timer again
 }
 
 // Mouse button event handler
@@ -194,6 +236,18 @@ void mouseButton(int button, int state, int x, int y) {
             lastMouseY = y;
         } else if (state == GLUT_UP) {
             isDragging = false;
+            accumulatedAngleX += angleX;
+            accumulatedAngleY += angleY;
+            angleX = 0.0f;
+            angleY = 0.0f;
+        }
+    } else if (button == GLUT_RIGHT_BUTTON) {
+        if (state == GLUT_DOWN) {
+            isPanning = true;
+            lastMouseX = x;
+            lastMouseY = y;
+        } else if (state == GLUT_UP) {
+            isPanning = false;
         }
     }
 }
@@ -204,8 +258,19 @@ void mouseMotion(int x, int y) {
         int dx = x - lastMouseX;
         int dy = y - lastMouseY;
 
-        angleX += dy * 0.5f;
-        angleY += dx * 0.5f;
+        angleX = dy * 1.0f;
+        angleY = dx * 1.0f;
+
+        lastMouseX = x;
+        lastMouseY = y;
+
+        glutPostRedisplay();
+    } else if (isPanning) {
+        int dx = x - lastMouseX;
+        int dy = y - lastMouseY;
+
+        panX += dx * 0.05f;
+        panY -= dy * 0.05f;
 
         lastMouseX = x;
         lastMouseY = y;
@@ -223,6 +288,8 @@ void mouseWheel(int button, int dir, int x, int y) {
     }
     glutPostRedisplay();
 }
+
+// Mouse function to handle both button and wheel events
 void mouseFunc(int button, int state, int x, int y) {
     if (button == 3 || button == 4) { // Scroll up or down
         mouseWheel(button, (button == 3) ? 1 : -1, x, y);
@@ -240,10 +307,21 @@ int main(int argc, char **argv) {
 
     init();
     glutDisplayFunc(display);                                   // Register Display Function
-    glutMouseFunc(mouseButton);                                 // Register Mouse Button Function
-    glutMotionFunc(mouseMotion);                                // Register Mouse Motion Function
     glutMouseFunc(mouseFunc);                                   // Register Mouse Function
-	
+    glutMotionFunc(mouseMotion);                                // Register Mouse Motion Function
+    //  glutKeyboardFunc(handleKeyPress);
+    // glutKeyboardUpFunc(handleKeyRelease);
+    glutTimerFunc(fallInterval, timer, 0);                      // Register Timer Function
+
+    // Initialize Tetrominoes
+     //tetrominoes.push_back(tetromino(tetromino::I));
+     //tetrominoes.push_back(tetromino(tetromino::J));
+    // tetrominoes.push_back(tetromino(tetromino::L));
+    tetrominoes.push_back(tetromino(tetromino::O));
+    // tetrominoes.push_back(tetromino(tetromino::S));
+    // tetrominoes.push_back(tetromino(tetromino::T));
+    // tetrominoes.push_back(tetromino(tetromino::Z));
+
     glutMainLoop();                                             // Run GLUT main loop
 
     return 0;
