@@ -60,6 +60,3 @@ Below you can find your shortcuts:
 - t			: cube movement, increase Z
 - y			: cube movement, decrease Z
 
- 
-# Contact
-Please feel free to contact me for anything you might want in vtzivaras@gmail.com
