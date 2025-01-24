@@ -1,45 +1,43 @@
 #include <GL/gl.h>   // Open Graphics Library (OpenGL) header
 #include <GL/glut.h> // The GL Utility Toolkit (GLUT) Header
-#include <GL/glu.h>
-
-#include <iostream>
-#include <list>
-#include <queue>
-#include <memory>
-#include <vector>
 #include <cmath>
-
-
 
 // Camera state variables
 float cameraYaw = 0.0f;    // Rotation around the local Y-axis
 float cameraPitch = 0.0f;  // Rotation around the local X-axis
 float cameraDistance = 20.0f; // Distance from the target (zoom level)
-float zoom = 1.0f;
 
 // Mouse state variables
 int lastMouseX, lastMouseY; // To track the last mouse position
 bool isDragging = false;    // Whether the mouse is being dragged
 
+// Mouse wheel callback (FreeGLUT-specific)
 void mouseWheel(int button, int dir, int x, int y) {
+    // Zoom in or out based on mouse wheel direction
     if (dir > 0) {
-        zoom *= 1.1f; // Zoom in
+        cameraDistance *= 0.9f; // Zoom in (reduce distance)
     } else {
-        zoom /= 1.1f; // Zoom out
+        cameraDistance *= 1.1f; // Zoom out (increase distance)
     }
-    glutPostRedisplay();
+
+    // Clamp camera distance to prevent extreme zooming
+    if (cameraDistance < 2.0f) cameraDistance = 2.0f;    // Minimum zoom distance
+    if (cameraDistance > 100.0f) cameraDistance = 100.0f; // Maximum zoom distance
+
+    glutPostRedisplay(); // Request a redraw
 }
-// Function to set up the camera view
-void updateCamera() {
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
 
-    // Translate the camera back (zoom)
-    glTranslatef(0.0f, 0.0f, -cameraDistance);
-
-    // Apply pitch and yaw (dynamic rotation)
-    glRotatef(cameraPitch, 1.0f, 0.0f, 0.0f); // Rotate around camera's X-axis
-    glRotatef(cameraYaw, 0.0f, 1.0f, 0.0f);   // Rotate around camera's Y-axis
+// Mouse button callback
+void mouseButton(int button, int state, int x, int y) {
+    if (button == GLUT_LEFT_BUTTON) {
+        if (state == GLUT_DOWN) {
+            isDragging = true;
+            lastMouseX = x;
+            lastMouseY = y;
+        } else if (state == GLUT_UP) {
+            isDragging = false;
+        }
+    }
 }
 
 // Mouse motion callback
@@ -66,17 +64,17 @@ void mouseMotion(int x, int y) {
     }
 }
 
-// Mouse button callback
-void mouseButton(int button, int state, int x, int y) {
-    if (button == GLUT_LEFT_BUTTON) {
-        if (state == GLUT_DOWN) {
-            isDragging = true;
-            lastMouseX = x;
-            lastMouseY = y;
-        } else if (state == GLUT_UP) {
-            isDragging = false;
-        }
-    }
+// Function to set up the camera view
+void updateCamera() {
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    // Translate the camera back (zoom)
+    glTranslatef(0.0f, 0.0f, -cameraDistance);
+
+    // Apply pitch and yaw (dynamic rotation)
+    glRotatef(cameraPitch, 1.0f, 0.0f, 0.0f); // Rotate around camera's X-axis
+    glRotatef(cameraYaw, 0.0f, 1.0f, 0.0f);   // Rotate around camera's Y-axis
 }
 
 // Initialization function
@@ -88,7 +86,6 @@ void init() {
     gluPerspective(45.0, 1.0, 1.0, 100.0);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    gluLookAt(10.0, 10.0, 10.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
 }
 
 // Function to display the grid
@@ -141,14 +138,25 @@ int main(int argc, char** argv) {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
     glutInitWindowSize(800, 600);
-    glutCreateWindow("3D Camera with Dynamic Grid");
+    glutCreateWindow("3D Camera with Zoom");
 
     init();
 
     // Register callbacks
     glutDisplayFunc(display);
-    glutMotionFunc(mouseMotion);
     glutMouseFunc(mouseButton);
+    glutMotionFunc(mouseMotion);
+
+    // Use FreeGLUT's mouse wheel support if available
+    glutMouseFunc([](int button, int state, int x, int y) {
+        if (button == 3) { // Scroll up
+            mouseWheel(button, 1, x, y);
+        } else if (button == 4) { // Scroll down
+            mouseWheel(button, -1, x, y);
+        } else {
+            mouseButton(button, state, x, y);
+        }
+    });
 
     glutMainLoop();
     return 0;
