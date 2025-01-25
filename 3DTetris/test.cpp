@@ -135,12 +135,53 @@ void displayTetromino(const tetromino& t, int color) {
     float centerX = blocks.size() / 2.0f;
     float centerY = blocks[0].size() / 2.0f;
     float centerZ = blocks[0][0].size() / 2.0f;
+    switch (t.getShape())
+    {
+    case tetromino::I:
+        centerX = 0.5f;
+        centerY = 1.5f;
+        centerZ = 0.0f;
+        break;
+    case tetromino::J:
+        centerX = 1.0f;
+        centerY = 0.5f;
+        centerZ = 0.0f;
+        break;
+    case tetromino::L:
+        centerX = 1.0f;
+        centerY = 0.5f;
+        centerZ = 0.0f;
+        break;
+    case tetromino::O:
+        centerX = 0.5f;
+        centerY = 0.5f;
+        centerZ = 0.0f;
+        break;
+    case tetromino::S:
+        centerX = 0.5f;
+        centerY = 0.5f;
+        centerZ = 0.0f;
+        break;
+    case tetromino::T:
+        centerX = 1.0f;
+        centerY = 0.5f;
+        centerZ = 0.0f;
+        break;
+    case tetromino::Z:  
+        centerX = 0.5f;
+        centerY = 0.5f;
+        centerZ = 0.0f;
+        break;
+    default:
+        break;
+    }
+
     glPushMatrix();
    
     // Move to tetromino position
-    glTranslatef(x,y,z);
+    glTranslatef(x, y, z);
    
-    /// Then translate to center, rotate, and translate back
+    // Then translate to center, rotate, and translate back
     glTranslatef(centerX, centerY, centerZ);
     glRotatef(t.getRotationX(), 1.0f, 0.0f, 0.0f);
     glRotatef(t.getRotationY(), 0.0f, 1.0f, 0.0f);
@@ -199,8 +240,7 @@ int lastMouseX = 0;
 int lastMouseY = 0;
 bool isDragging = false;
 bool isPanning = false;
-// float cameraPitch = 0.0f;
-// float cameraYaw = 0.0f;
+
 
 // Global variables for Tetrominoes and fall speed
 std::vector<tetromino> tetrominoes;
