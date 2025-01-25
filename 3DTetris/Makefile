@@ -3,7 +3,7 @@
 
 # Implementation of the Makefile
 all:
-	g++ -Wall main.cpp -lglut -lGLU -lGL
+	g++ -Wall test.cpp -lglut -lGLU -lGL -o test
 
 clean:
 	rm *.o
