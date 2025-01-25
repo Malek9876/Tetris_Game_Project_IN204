@@ -1,7 +1,9 @@
 #include <GL/gl.h>   // Open Graphics Library (OpenGL) header
 #include <GL/glut.h> // The GL Utility Toolkit (GLUT) Header
 #include <cmath>
-
+#include<vector>
+#include<array>
+#include<iostream>
 // Camera state variables
 float cameraYaw = 0.0f;    // Rotation around the local Y-axis
 float cameraPitch = 0.0f;  // Rotation around the local X-axis
@@ -87,7 +89,135 @@ void init() {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 }
+class Tetromino {
+public:
+    enum Shape { I, J, L, O, S, T, Z };
 
+    Tetromino(Shape shape) : shape(shape), position{5.0f, 0.0f, 6.5f} {
+        initializeShape();
+    }
+
+    Shape getShape() const { return shape; }
+
+    const std::vector<std::vector<std::vector<int>>>& getBlocks() const { return blocks; }
+
+    void updatePosition(float dx, float dy, float dz) {
+        position[0] += dx;
+        position[1] += dy;
+        position[2] += dz;
+    }
+
+    std::array<float, 3> getPosition() const { return position; }
+
+    void rotateX() { rotateShape('X'); } // Rotate around X-axis
+    void rotateY() { rotateShape('Y'); } // Rotate around Y-axis
+    void rotateZ() { rotateShape('Z'); } // Rotate around Z-axis
+     float getPositionY() const {
+        return position[1];
+    }
+    float getPositionX() const {
+        return position[0];
+    }
+    float getPositionZ() const {
+        return position[2];
+    }
+
+private:
+    Shape shape;
+    std::vector<std::vector<std::vector<int>>> blocks; // 3D representation of Tetromino
+    std::array<float, 3> position;                      // {x, y, z}
+
+    void initializeShape() {
+        switch (shape) {
+            case I: blocks = {{{1}, {1}, {1}, {1}}}; break; // 3D I shape
+            case J: blocks = {{{1, 0, 0}, {1, 1, 1}}}; break; // 3D J shape
+            case L: blocks = {{{0, 0, 1}, {1, 1, 1}}}; break; // 3D L shape
+            case O: blocks = {{{1, 1}, {1, 1}}}; break; // 3D O shape
+            case S: blocks = {{{0, 1, 1}, {1, 1, 0}}}; break; // 3D S shape
+            case T: blocks = {{{0, 1, 0}, {1, 1, 1}}}; break; // 3D T shape
+            case Z: blocks = {{{1, 1, 0}, {0, 1, 1}}}; break; // 3D Z shape
+        }
+    }
+
+    void rotateShape(char axis) {
+        if (axis == 'X') {
+            // Rotate around X-axis
+            for (size_t i = 0; i < blocks.size(); i++) {
+                for (size_t j = 0; j < blocks[i].size(); j++) {
+                    for (size_t k = 0; k < blocks[i][j].size(); k++) {
+                        // Apply rotation formula for X-axis (Transpose)
+                        blocks[i][j][k] = blocks[i][j][k]; // Adjust accordingly for rotation logic
+                    }
+                }
+            }
+        } else if (axis == 'Y') {
+            // Rotate around Y-axis
+            for (size_t i = 0; i < blocks.size(); i++) {
+                for (size_t j = 0; j < blocks[i].size(); j++) {
+                    for (size_t k = 0; k < blocks[i][j].size(); k++) {
+                        // Apply rotation formula for Y-axis
+                        blocks[i][j][k] = blocks[i][j][k]; // Adjust accordingly for rotation logic
+                    }
+                }
+            }
+        } else if (axis == 'Z') {
+            // Rotate around Z-axis
+            for (size_t i = 0; i < blocks.size(); i++) {
+                for (size_t j = 0; j < blocks[i].size(); j++) {
+                    for (size_t k = 0; k < blocks[i][j].size(); k++) {
+                        // Apply rotation formula for Z-axis
+                        blocks[i][j][k] = blocks[i][j][k]; // Adjust accordingly for rotation logic
+                    }
+                }
+            }
+        }
+    }
+    void displayTetromino(const Tetromino& t, int color) {
+    const auto& blocks = t.getBlocks();
+    float y = t.getPositionY();
+    float x = t.getPositionX();
+    float z = t.getPositionZ();
+    // Set color based on the color parameter
+    GLfloat r, g, b;
+    switch (color) {
+        case 0: r = 0xBA / 255.0f; g = 0x20 / 255.0f; b = 0x20 / 255.0f; break; // Red BA2020
+        case 1: r = 0x62 / 255.0f; g = 0xC4 / 255.0f; b = 0x00 / 255.0f; break; // Green 62C400
+        case 2: r = 0x12 / 255.0f; g = 0xAD / 255.0f; b = 0xD4 / 255.0f; break; // Blue 12ADD4
+        case 3: r = 0xDE / 255.0f; g = 0xE9 / 255.0f; b = 0x3C / 255.0f; break; // Yellow DEE93C
+        case 4: r = 0x9E / 255.0f; g = 0x13 / 255.0f; b = 0xE4 / 255.0f; break; // Purple 9E13E4
+        case 5: r = 0x08 / 255.0f; g = 0x47 / 255.0f; b = 0xF3 / 255.0f; break; // Blue 0847F3
+        default: r = 1; g = 1; b = 1; break; // White
+    }
+
+    // Draw each block of the Tetromino
+    for (size_t i = 0; i < blocks.size(); ++i) {
+        for (size_t j = 0; j < blocks[i].size(); ++j) {
+            for (size_t k = 0; k < blocks[i][j].size(); ++k) {
+                if (blocks[i][j][k] != 0) {
+                    glPushMatrix();
+                    glTranslatef(x + i, y + j, z + k);
+
+                    // Set color for the solid cube
+                    glColor3f(r, g, b);
+                    glutSolidCube(1);
+
+                    // Calculate darker shade for the wireframe
+                    GLfloat darkR = r * 0.5f;
+                    GLfloat darkG = g * 0.5f;
+                    GLfloat darkB = b * 0.5f;
+
+                    // Draw wireframe edges
+                    glLineWidth(2.0f); // Set line width to 2.0
+                    glColor3f(darkR, darkG, darkB); // Set edge color to darker shade
+                    glutWireCube(1.01); // Slightly larger to avoid z-fighting
+
+                    glPopMatrix();
+                }
+            }
+        }
+    }
+}
+};
 // Function to display the grid
 void displayGrid() {
     int n = 15; // Grid length
@@ -119,10 +249,36 @@ void displayGrid() {
     }
     glEnd();
 }
+void testTetromino() {
+    // Create a Tetromino (for example, a "T" shape)
+    Tetromino tetromino(Tetromino::T);
 
+    // Move the Tetromino
+    tetromino.updatePosition(1.0f, 0.0f, 0.0f);
+
+    // Rotate the Tetromino
+    tetromino.rotateZ(); // Rotate by Z axis
+
+    // Output the current position of the Tetromino for debugging
+    auto pos = tetromino.getPosition();
+    std::cout << "Tetromino Position: (" 
+              << pos[0] << ", " << pos[1] << ", " << pos[2] << ")\n";
+
+    // Display the blocks of the tetromino (for debugging purposes)
+    for (const auto& layer : tetromino.getBlocks()) {
+        for (const auto& row : layer) {
+            for (int cell : row) {
+                std::cout << cell << " ";
+            }
+            std::cout << std::endl;
+        }
+        std::cout << std::endl;
+    }
+}
 // Display callback
 void display() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    testTetromino(); // Call the test function to display Tetromino
 
     // Update the camera
     updateCamera();
@@ -132,6 +288,8 @@ void display() {
 
     glutSwapBuffers();
 }
+
+
 
 // Main function
 int main(int argc, char** argv) {
