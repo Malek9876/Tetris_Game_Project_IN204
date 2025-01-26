@@ -5,7 +5,7 @@
 #include <iostream>
 #define BOARD_HEIGHT 15
 #define BOARD_WIDTH_DEPTH 15
-
+using BLOCKS = std::vector<std::vector<std::vector<int>>>;
 // Camera state variables
 float cameraYaw = 0.0f;    // Rotation around the local Y-axis
 float cameraPitch = 0.0f;  // Rotation around the local X-axis
@@ -14,9 +14,6 @@ float initialCameraYaw = 0.0f;
 float initialCameraPitch = 0.0f;
 float initialCameraDistance = 20.0f;
 size_t selectedTetromino = 0; // Index of the currently selected Tetromino
-
-class Tetromino;
-
 class GameBoard {
 private:
 size_t GRID_SIZE =4;
@@ -116,12 +113,7 @@ public:
         return false;
     }
 
-    void lockTetromino(const Tetromino& t) {
-        const auto& blocks = t.getBlocks();
-        float posX = t.getPositionX();
-        float posY = t.getPositionY();
-        float posZ = t.getPositionZ();
-        
+    void lockTetromino(const float posX,const float posY,const float posZ,BLOCKS blocks) {
         for(size_t i = 0; i < blocks.size(); ++i) {
             for(size_t j = 0; j < blocks[i].size(); ++j) {
                 for(size_t k = 0; k < blocks[i][j].size(); ++k) {
@@ -139,52 +131,57 @@ public:
         checkAndClearFullLayers();
     }
 
-    bool isValidPosition(const Tetromino& Tetromino) const {
-        const auto& blocks = Tetromino.getBlocks();
-        int posX = Tetromino.getPositionX();
-        int posY = Tetromino.getPositionY();
-        int posZ = Tetromino.getPositionZ();
+    // bool isValidPosition(int posX,int posY,int posZ,BLOCKS blocks) const {
+        
 
-        for(int i = 0; i < GRID_SIZE; i++) {
-            for(int j = 0; j < GRID_SIZE; j++) {
-                for(int k = 0; k < GRID_SIZE; k++) {
-                    if(blocks[i][j][k] != 0) {
-                        int worldX = posX + i;
-                        int worldY = posY + j;
-                        int worldZ = posZ + k;
+    //     for(int i = 0; i < GRID_SIZE; i++) {
+    //         for(int j = 0; j < GRID_SIZE; j++) {
+    //             for(int k = 0; k < GRID_SIZE; k++) {
+    //                 if(blocks[i][j][k] != 0) {
+    //                     int worldX = posX + i;
+    //                     int worldY = posY + j;
+    //                     int worldZ = posZ + k;
                         
-                        // Check bounds and collisions
-                        if(worldX < 0 || worldX >= BOARD_WIDTH_DEPTH ||
-                           worldY < 0 || worldY >= BOARD_HEIGHT ||
-                           worldZ < 0 || worldZ >= BOARD_WIDTH_DEPTH ||
-                           occupiedPositions[worldX][worldY][worldZ]) {
-                            return false;
-                        }
-                    }
-                }
-            }
-        }
-        return true;
-    }
+    //                     // Check bounds and collisions
+    //                     if(worldX < 0 || worldX >= BOARD_WIDTH_DEPTH ||
+    //                        worldY < 0 || worldY >= BOARD_HEIGHT ||
+    //                        worldZ < 0 || worldZ >= BOARD_WIDTH_DEPTH ||
+    //                        occupiedPositions[worldX][worldY][worldZ]) {
+    //                         return false;
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     return true;
+    // }
 };
+
 GameBoard gameboard;
 
-// Tetromino class definition
+
 class Tetromino {
 public:
     // Tetromino shapes
     enum Shape { I, J, L, O, S, T, Z };
-   
-    // Constructor
-    Tetromino(Shape shape) : shape(shape), posY(10.5f), posX(0.25f), posZ(0.25f),rotationX(0.0f), rotationY(0.0f), rotationZ(0.0f) {
+    
+    Tetromino(Shape shape) : 
+        shape(shape),posX(0), posY(BOARD_HEIGHT-1), posZ(0),
+        dx(0), dy(0), dz(0) {
+        blocks = std::vector<std::vector<std::vector<int>>>(
+            GRID_SIZE, 
+            std::vector<std::vector<int>>(
+                GRID_SIZE, 
+                std::vector<int>(GRID_SIZE, 0)
+            )
+        );
         initializeShape();
     }
-
     // Get the shape of the Tetromino
     Shape getShape() const {
         return shape;
     }
-
+    
     // Get the blocks of the Tetromino
     const std::vector<std::vector<std::vector<int>>>& getBlocks() const {
         return blocks;
@@ -240,6 +237,109 @@ public:
     void setRotationZ(float value) {
         rotationZ = value;
     }
+    
+
+    void rotateLocal(int axis) {
+        // Store original orientation
+        int oldDx = dx;
+        int oldDy = dy;
+        int oldDz = dz;
+        std::cout << "dx: " << dx << " dy: " << dy << " dz: " << dz << std::endl;
+
+        switch(axis) {
+            case 0: // X axis rotation
+                dy = (dy + 1) % 4;
+                dz = (dz + 3) % 4;
+                break;
+            case 1: // Y axis rotation
+                dx = (dx + 1) % 4;
+                dz = (dz + 3) % 4;
+                break;
+            case 2: // Z axis rotation
+                dx = (dx + 1) % 4;
+                dy = (dy + 3) % 4;
+                break;
+        }
+        std::cout << "dx: " << dx << " dy: " << dy << " dz: " << dz << std::endl;
+        
+        // Rotate blocks in 4x4x4 grid
+        BLOCKS temp = blocks;
+        
+        try {
+        // Iterate through 3D grid
+        for(int i = 0; i < GRID_SIZE; i++) {
+            for(int j = 0; j < GRID_SIZE; j++) {
+                for(int k = 0; k < GRID_SIZE; k++) {
+                    // Bounds checking
+                    if (i >= GRID_SIZE || j >= GRID_SIZE || k >= GRID_SIZE) {
+                        continue;
+                    }
+                    
+                    switch(axis) {
+                        case 0: // X-axis rotation
+                            // (x,y,z) -> (x,-z,y)
+                            if (j < GRID_SIZE && k < GRID_SIZE) {
+                                blocks[i][GRID_SIZE-1-k][j] = temp[i][j][k];
+                            }
+                            break;
+                            
+                        case 1: // Y-axis rotation
+                            // (x,y,z) -> (z,y,-x)
+                            if (i < GRID_SIZE && k < GRID_SIZE) {
+                                blocks[k][j][GRID_SIZE-1-i] = temp[i][j][k];
+                            }
+                            break;
+                            
+                        case 2: // Z-axis rotation
+                            // (x,y,z) -> (-y,x,z)
+                            if (i < GRID_SIZE && j < GRID_SIZE) {
+                                blocks[GRID_SIZE-1-j][i][k] = temp[i][j][k];
+                            }
+                            break;
+                    }
+                }
+            }
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Rotation error: " << e.what() << std::endl;
+    }
+
+        // Check if rotation is valid using gameboard's isValidPosition
+        /*if (!gameboard.isValidPosition(*this)) {
+            blocks = temp;
+            dx = oldDx;
+            dy = oldDy; 
+            dz = oldDz;
+        }*/
+    }
+
+    bool isValidPosition(const GameBoard& gameboard) const {
+        for(int i = 0; i < GRID_SIZE; i++) {
+            for(int j = 0; j < GRID_SIZE; j++) {
+                for(int k = 0; k < GRID_SIZE; k++) {
+                    if(blocks[i][j][k] != 0) {
+                        int worldX = posX + i;
+                        int worldY = posY + j;
+                        int worldZ = posZ + k;
+                        
+                        // Check bounds and collisions
+                        if(worldX < 0 || worldX >= BOARD_WIDTH_DEPTH ||
+                           worldY < 0 || worldY >= BOARD_HEIGHT ||
+                           worldZ < 0 || worldZ >= BOARD_WIDTH_DEPTH ||
+                           gameboard.isPositionOccupied(worldX,worldY,worldZ)) {
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    // Getter methods for orientation
+    int getOrientationX() const { return dx; }
+    int getOrientationY() const { return dy; }
+    int getOrientationZ() const { return dz; }
 
 private:
     Shape shape;
@@ -280,100 +380,10 @@ private:
     }
     static const int GRID_SIZE = 4;
     int dx, dy, dz;          // Local orientation (0-3)
+
     
-public:
-    Tetromino(Shape shape) : 
-        posX(0), posY(BOARD_HEIGHT-1), posZ(0),
-        dx(0), dy(0), dz(0) {
-        blocks = std::vector<std::vector<std::vector<int>>>(
-            GRID_SIZE, 
-            std::vector<std::vector<int>>(
-                GRID_SIZE, 
-                std::vector<int>(GRID_SIZE, 0)
-            )
-        );
-        initializeShape();
-    }
-
-    void rotateLocal(int axis) {
-        // Store original orientation
-        int oldDx = dx;
-        int oldDy = dy;
-        int oldDz = dz;
-
-        switch(axis) {
-            case 0: // X axis rotation
-                dy = (dy + 1) % 4;
-                dz = (dz + 3) % 4;
-                break;
-            case 1: // Y axis rotation
-                dx = (dx + 1) % 4;
-                dz = (dz + 3) % 4;
-                break;
-            case 2: // Z axis rotation
-                dx = (dx + 1) % 4;
-                dy = (dy + 3) % 4;
-                break;
-        }
-        
-        // Rotate blocks in 4x4x4 grid
-        std::vector<std::vector<std::vector<int>>> temp = blocks;
-        
-        for(int i = 0; i < GRID_SIZE; i++) {
-            for(int j = 0; j < GRID_SIZE; j++) {
-                for(int k = 0; k < GRID_SIZE; k++) {
-                    switch(axis) {
-                        case 0: // X axis
-                            blocks[i][k][GRID_SIZE-1-j] = temp[i][j][k];
-                            break;
-                        case 1: // Y axis
-                            blocks[k][j][GRID_SIZE-1-i] = temp[i][j][k];
-                            break;
-                        case 2: // Z axis
-                            blocks[GRID_SIZE-1-j][i][k] = temp[i][j][k];
-                            break;
-                    }
-                }
-            }
-        }
-
-        // Check if rotation is valid using gameboard's isValidPosition
-        /*if (!gameboard.isValidPosition(*this)) {
-            blocks = temp;
-            dx = oldDx;
-            dy = oldDy; 
-            dz = oldDz;
-        }*/
-    }
-
-    bool isValidPosition(const GameBoard& gameboard) const {
-        for(int i = 0; i < GRID_SIZE; i++) {
-            for(int j = 0; j < GRID_SIZE; j++) {
-                for(int k = 0; k < GRID_SIZE; k++) {
-                    if(blocks[i][j][k] != 0) {
-                        int worldX = posX + i;
-                        int worldY = posY + j;
-                        int worldZ = posZ + k;
-                        
-                        // Check bounds and collisions
-                        if(worldX < 0 || worldX >= BOARD_WIDTH_DEPTH ||
-                           worldY < 0 || worldY >= BOARD_HEIGHT ||
-                           worldZ < 0 || worldZ >= BOARD_WIDTH_DEPTH ||
-                           gameboard.isPositionOccupied(worldX,worldY,worldZ)) {
-                            return false;
-                        }
-                    }
-                }
-            }
-        }
-        return true;
-    }
-
-    // Getter methods for orientation
-    int getOrientationX() const { return dx; }
-    int getOrientationY() const { return dy; }
-    int getOrientationZ() const { return dz; }
 };
+
 
 
 // Function to display a Tetromino
@@ -383,9 +393,9 @@ void displayTetromino(const Tetromino& t, int color) {
     float x = t.getPositionX();
     float z = t.getPositionZ();
     // Calculate center of the Tetromino
-    float centerX = blocks.size() / 2.0f;
-    float centerY = blocks[0].size() / 2.0f;
-    float centerZ = blocks[0][0].size() / 2.0f;
+    // float centerX = blocks.size() / 2.0f;
+    // float centerY = blocks[0].size() / 2.0f;
+    // float centerZ = blocks[0][0].size() / 2.0f;
    /* switch (t.getShape())
     {
     case Tetromino::I:
@@ -433,11 +443,11 @@ void displayTetromino(const Tetromino& t, int color) {
     glTranslatef(x, y, z);
    
     // Then translate to center, rotate, and translate back
-    glTranslatef(centerX, centerY, centerZ);
-    glRotatef(t.getRotationX(), 1.0f, 0.0f, 0.0f);
-    glRotatef(t.getRotationY(), 0.0f, 1.0f, 0.0f);
-    glRotatef(t.getRotationZ(), 0.0f, 0.0f, 1.0f);
-    glTranslatef(-centerX, -centerY, -centerZ);
+    //glTranslatef(centerX, centerY, centerZ);
+    glRotatef(t.getRotationX(), t.getPositionX(), 0.0f, 0.0f);
+    glRotatef(t.getRotationY(), 0.0f, t.getPositionY(), 0.0f);
+    glRotatef(t.getRotationZ(), 0.0f, 0.0f, t.getPositionZ());
+    //glTranslatef(-centerX, -centerY, -centerZ);
 
     // Set color based on the color parameter
     GLfloat r, g, b;
@@ -458,7 +468,7 @@ void displayTetromino(const Tetromino& t, int color) {
                 if (blocks[i][j][k] != 0) {
                     glPushMatrix();
                     glTranslatef(x + i, y + j, z + k);
-
+                    //std::cout << "x: " << x + i << " y: " << y + j << " z: " << z + k << std::endl;
                     // Set color for the solid cube
                     glColor3f(r, g, b);
                     glutSolidCube(1);
@@ -578,8 +588,7 @@ void display() {
    
     updateCamera(); // Update the camera view
 
-    displayGrid();
-
+    displayGrid(); // Display the grid
     // Display all Tetrominoes
     for (size_t i = 0; i < Tetrominoes.size(); ++i) {
         displayTetromino(Tetrominoes[i], i % 6); // Display each Tetromino with a different color
@@ -750,16 +759,17 @@ void keyboard(unsigned char key, int x, int y) {
             glutPostRedisplay();
         }
     } else if (key == 'e' || key == 'E') {
+        std::cout << "t" << std::endl;
         // Rotate the selected Tetromino around the X-axis
-        rotateTetromino(0);
+        Tetrominoes[selectedTetromino].rotateLocal(0);
         glutPostRedisplay();
     } else if (key == 'r' || key == 'R') {
         // Rotate the selected Tetromino around the Y-axis
-        rotateTetromino(1);
+        Tetrominoes[selectedTetromino].rotateLocal(1);
         glutPostRedisplay();
     } else if (key == 'f' || key == 'F') {
         // Rotate the selected Tetromino around the Z-axis
-        rotateTetromino(2);
+        Tetrominoes[selectedTetromino].rotateLocal(2);
 
         glutPostRedisplay();
     }
@@ -783,12 +793,8 @@ int main(int argc, char** argv) {
     glutTimerFunc(fallInterval, timer, 0); // R    glutKeyboardFunc(ke
     // Initialize Tetrominoes
     Tetrominoes.push_back(Tetromino(Tetromino::I));
-   //Tetrominoes.push_back(Tetromino(Tetromino::J));
-    //Tetrominoes.push_back(Tetromino(Tetromino::L));
-    //Tetrominoes.push_back(Tetromino(Tetromino::S));
-    //Tetrominoes.push_back(Tetromino(Tetromino::T));
-    //Tetrominoes.push_back(Tetromino(Tetromino::Z));
-
+    std::cout << "Tetrominoes size: " << Tetrominoes.size() << std::endl;
+ 
     glutMainLoop();
     return 0;
 }

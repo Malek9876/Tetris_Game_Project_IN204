@@ -3,6 +3,7 @@
 #include <cmath>
 #include <vector>
 #include <iostream>
+#include <cfloat>
 
 // Camera state variables
 float cameraYaw = 0.0f;    // Rotation around the local Y-axis
@@ -103,7 +104,7 @@ private:
                 blocks = {{{1}, {1}, {1}, {1}}};
                 break;
             case J:
-                blocks = {{{1, 0, 0}, {1, 1, 1}}};
+                blocks = {{{1, 1, 0}, {1, 1, 1}}};
                 break;
             case L:
                 blocks = {{{0, 0, 1}, {1, 1, 1}}};
@@ -132,9 +133,31 @@ void displayTetromino(const tetromino& t, int color) {
     float x = t.getPositionX();
     float z = t.getPositionZ();
     // Calculate center of the tetromino
-    float centerX = blocks.size() / 2.0f;
-    float centerY = blocks[0].size() / 2.0f;
-    float centerZ = blocks[0][0].size() / 2.0f;
+
+    float minX = FLT_MAX, maxX = -FLT_MAX;
+    float minY = FLT_MAX, maxY = -FLT_MAX;
+    float minZ = FLT_MAX, maxZ = -FLT_MAX;
+
+    // Find actual bounds of the tetromino
+    for(size_t x = 0; x < blocks.size(); x++) {
+        for(size_t y = 0; y < blocks[x].size(); y++) {
+            for(size_t z = 0; z < blocks[x][y].size(); z++) {
+                if(blocks[x][y][z]) { // If block exists at this position
+                    minX = std::min(minX, (float)x);
+                    maxX = std::max(maxX, (float)x);
+                    minY = std::min(minY, (float)y);
+                    maxY = std::max(maxY, (float)y);
+                    minZ = std::min(minZ, (float)z);
+                    maxZ = std::max(maxZ, (float)z);
+                }
+            }
+        }
+    }
+
+    // Calculate center based on actual block positions
+    float centerX = (minX + maxX) / 2.0f;
+    float centerY = (minY + maxY) / 2.0f;
+    float centerZ = (minZ + maxZ) / 2.0f;
    /* switch (t.getShape())
     {
     case tetromino::I:
@@ -175,18 +198,16 @@ void displayTetromino(const tetromino& t, int color) {
     default:
         break;
     }*/
-
+    // In displayTetromino function
     glPushMatrix();
-   
-    // Move to tetromino position
+
+    // First move to tetromino position
     glTranslatef(x, y, z);
-   
-    // Then translate to center, rotate, and translate back
-    glTranslatef(centerX, centerY, centerZ);
-    glRotatef(t.getRotationX(), 1.0f, 0.0f, 0.0f);
-    glRotatef(t.getRotationY(), 0.0f, 1.0f, 0.0f);
-    glRotatef(t.getRotationZ(), 0.0f, 0.0f, 1.0f);
-    glTranslatef(-centerX, -centerY, -centerZ);
+
+    // Then do the local rotations
+    glRotatef(t.getRotationX(), 1.0f, 0.0f, 0.0f); // Local X rotation
+    glRotatef(t.getRotationY(), 0.0f, 1.0f, 0.0f); // Local Y rotation 
+    glRotatef(t.getRotationZ(), 0.0f, 0.0f, 1.0f); // Local Z rotation
 
     // Set color based on the color parameter
     GLfloat r, g, b;
@@ -199,14 +220,13 @@ void displayTetromino(const tetromino& t, int color) {
         case 5: r = 0x08 / 255.0f; g = 0x47 / 255.0f; b = 0xF3 / 255.0f; break; // Blue 0847F3
         default: r = 1; g = 1; b = 1; break; // White
     }
-
-    // Draw each block of the Tetromino
+    // Now translate relative to tetromino center for block placement
     for (size_t i = 0; i < blocks.size(); ++i) {
         for (size_t j = 0; j < blocks[i].size(); ++j) {
             for (size_t k = 0; k < blocks[i][j].size(); ++k) {
                 if (blocks[i][j][k] != 0) {
                     glPushMatrix();
-                    glTranslatef(x + i, y + j, z + k);
+                    glTranslatef(i - centerX, j - centerY, k - centerZ);
 
                     // Set color for the solid cube
                     glColor3f(r, g, b);
@@ -227,7 +247,50 @@ void displayTetromino(const tetromino& t, int color) {
             }
         }
     }
+
     glPopMatrix();
+    // glPushMatrix();
+   
+    // // Move to tetromino position
+    // glTranslatef(x, y, z);
+   
+    // // Then translate to center, rotate, and translate back
+    // glTranslatef(centerX, centerY, centerZ);
+    // glRotatef(t.getRotationX(), t.getPositionX(), 0.0f, 0.0f);
+    // glRotatef(t.getRotationY(), 0.0f, 1.0f, 0.0f);
+    // glRotatef(t.getRotationZ(), 0.0f, 0.0f, 1.0f);
+    // glTranslatef(-centerX, -centerY, -centerZ);
+
+    
+
+    // // Draw each block of the Tetromino
+    // for (size_t i = 0; i < blocks.size(); ++i) {
+    //     for (size_t j = 0; j < blocks[i].size(); ++j) {
+    //         for (size_t k = 0; k < blocks[i][j].size(); ++k) {
+    //             if (blocks[i][j][k] != 0) {
+    //                 glPushMatrix();
+    //                 glTranslatef(x + i, y + j, z + k);
+
+    //                 // Set color for the solid cube
+    //                 glColor3f(r, g, b);
+    //                 glutSolidCube(1);
+
+    //                 // Calculate darker shade for the wireframe
+    //                 GLfloat darkR = r * 0.5f;
+    //                 GLfloat darkG = g * 0.5f;
+    //                 GLfloat darkB = b * 0.5f;
+
+    //                 // Draw wireframe edges
+    //                 glLineWidth(2.0f); // Set line width to 2.0
+    //                 glColor3f(darkR, darkG, darkB); // Set edge color to darker shade
+    //                 glutWireCube(1.01); // Slightly larger to avoid z-fighting
+
+    //                 glPopMatrix();
+    //             }
+    //         }
+    //     }
+    // }
+    // glPopMatrix();
 }
 
 // Global variables for mouse control
@@ -532,13 +595,13 @@ int main(int argc, char** argv) {
     glutTimerFunc(fallInterval, timer, 0); // Register Timer Function
 
     // Initialize Tetrominoes
-    tetrominoes.push_back(tetromino(tetromino::I));
+    //tetrominoes.push_back(tetromino(tetromino::I));
     tetrominoes.push_back(tetromino(tetromino::J));
-    tetrominoes.push_back(tetromino(tetromino::L));
-    tetrominoes.push_back(tetromino(tetromino::O));
-    tetrominoes.push_back(tetromino(tetromino::S));
-    tetrominoes.push_back(tetromino(tetromino::T));
-    tetrominoes.push_back(tetromino(tetromino::Z));
+    //tetrominoes.push_back(tetromino(tetromino::L));
+    //tetrominoes.push_back(tetromino(tetromino::O));
+    //tetrominoes.push_back(tetromino(tetromino::S));
+    //tetrominoes.push_back(tetromino(tetromino::T));
+    //tetrominoes.push_back(tetromino(tetromino::Z));
 
     glutMainLoop();
     return 0;
