@@ -135,7 +135,7 @@ void displayTetromino(const tetromino& t, int color) {
     float centerX = blocks.size() / 2.0f;
     float centerY = blocks[0].size() / 2.0f;
     float centerZ = blocks[0][0].size() / 2.0f;
-    switch (t.getShape())
+   /* switch (t.getShape())
     {
     case tetromino::I:
         centerX = 0.5f;
@@ -174,7 +174,7 @@ void displayTetromino(const tetromino& t, int color) {
         break;
     default:
         break;
-    }
+    }*/
 
     glPushMatrix();
    

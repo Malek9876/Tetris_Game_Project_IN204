@@ -1,190 +1,444 @@
 #include <GL/gl.h>   // Open Graphics Library (OpenGL) header
 #include <GL/glut.h> // The GL Utility Toolkit (GLUT) Header
 #include <cmath>
-#include<vector>
-#include<array>
-#include<iostream>
-// Global variables
-
-float rotationAngle = 0.0f; // For rotating the entire scene
+#include <vector>
+#include <iostream>
+#define BOARD_HEIGHT 15
+#define BOARD_WIDTH_DEPTH 15
 
 // Camera state variables
 float cameraYaw = 0.0f;    // Rotation around the local Y-axis
 float cameraPitch = 0.0f;  // Rotation around the local X-axis
-float cameraDistance = 20.0f; // Distance from the target (zoom level)
+// float cameraDistance = 20.0f; // Distance from the target (zoom level)
+float initialCameraYaw = 0.0f;
+float initialCameraPitch = 0.0f;
+float initialCameraDistance = 20.0f;
+size_t selectedTetromino = 0; // Index of the currently selected Tetromino
 
-// Mouse state variables
-int lastMouseX, lastMouseY; // To track the last mouse position
-bool isDragging = false;    // Whether the mouse is being dragged
+class Tetromino;
 
-// Mouse wheel callback (FreeGLUT-specific)
-void mouseWheel(int button, int dir, int x, int y) {
-    // Zoom in or out based on mouse wheel direction
-    if (dir > 0) {
-        cameraDistance *= 0.9f; // Zoom in (reduce distance)
-    } else {
-        cameraDistance *= 1.1f; // Zoom out (increase distance)
+class GameBoard {
+private:
+size_t GRID_SIZE =4;
+    //static const int BOARD_WIDTH_DEPTH = 10;
+    //static const int BOARD_HEIGHT = 20;
+    bool occupiedPositions[BOARD_WIDTH_DEPTH][BOARD_HEIGHT][BOARD_WIDTH_DEPTH];
+
+public:
+    GameBoard() {
+        clearBoard();
     }
 
-    // Clamp camera distance to prevent extreme zooming
-    if (cameraDistance < 2.0f) cameraDistance = 2.0f;    // Minimum zoom distance
-    if (cameraDistance > 100.0f) cameraDistance = 100.0f; // Maximum zoom distance
-
-    glutPostRedisplay(); // Request a redraw
-}
-
-// Mouse button callback
-void mouseButton(int button, int state, int x, int y) {
-    if (button == GLUT_LEFT_BUTTON) {
-        if (state == GLUT_DOWN) {
-            isDragging = true;
-            lastMouseX = x;
-            lastMouseY = y;
-        } else if (state == GLUT_UP) {
-            isDragging = false;
+    void clearBoard() {
+        for(int x = 0; x < BOARD_WIDTH_DEPTH; x++) {
+            for(int y = 0; y < BOARD_HEIGHT; y++) {
+                for(int z = 0; z < BOARD_WIDTH_DEPTH; z++) {
+                    occupiedPositions[x][y][z] = false;
+                }
+            }
         }
     }
-}
 
-// Mouse motion callback
-void mouseMotion(int x, int y) {
-    if (isDragging) {
-        // Calculate mouse movement
-        float deltaX = (x - lastMouseX) * 0.2f; // Sensitivity factor
-        float deltaY = (y - lastMouseY) * 0.2f;
-
-        // Update yaw and pitch
-        cameraYaw += deltaX;
-        cameraPitch += deltaY;
-
-        // Clamp pitch to avoid flipping (optional)
-        if (cameraPitch > 89.0f) cameraPitch = 89.0f;
-        if (cameraPitch < -89.0f) cameraPitch = -89.0f;
-
-        // Update last mouse position
-        lastMouseX = x;
-        lastMouseY = y;
-
-        // Redraw the scene with the updated camera
-        glutPostRedisplay();
+    void clearLayer(int y) {
+        // Move all layers above down
+        for(int currentY = y; currentY < BOARD_HEIGHT - 1; currentY++) {
+            for(int x = 0; x < BOARD_WIDTH_DEPTH; x++) {
+                for(int z = 0; z < BOARD_WIDTH_DEPTH; z++) {
+                    occupiedPositions[x][currentY][z] = occupiedPositions[x][currentY + 1][z];
+                }
+            }
+        }
+        
+        // Clear top layer
+        for(int x = 0; x < BOARD_WIDTH_DEPTH; x++) {
+            for(int z = 0; z < BOARD_WIDTH_DEPTH; z++) {
+                occupiedPositions[x][BOARD_HEIGHT - 1][z] = false;
+            }
+        }
     }
-}
 
-// Function to set up the camera view
-void updateCamera() {
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
+    bool isLayerFull(int y) {
+        for(int x = 0; x < BOARD_WIDTH_DEPTH; x++) {
+            for(int z = 0; z < BOARD_WIDTH_DEPTH; z++) {
+                if(!occupiedPositions[x][y][z]) return false;
+            }
+        }
+        return true;
+    }
 
-    // Translate the camera back (zoom)
-    glTranslatef(0.0f, 0.0f, 00.0);
+    bool isPositionOccupied(int x, int y, int z) const {
+        return occupiedPositions[x][y][z];
+    }
 
-    // Apply pitch and yaw (dynamic rotation)
-    glRotatef(cameraPitch, 1.0f, 0.0f, 0.0f); // Rotate around camera's X-axis
-    glRotatef(cameraYaw, 0.0f, 1.0f, 0.0f);   // Rotate around camera's Y-axis
-}
+    bool isPositionValid(int x, int y, int z) const {
+        return x >= 0 && x < BOARD_WIDTH_DEPTH &&
+               y >= 0 && y < BOARD_HEIGHT &&
+               z >= 0 && z < BOARD_WIDTH_DEPTH &&
+               !occupiedPositions[x][y][z];
+    }
 
-// Initialization function
-void init() {
-    glClearColor(0.0, 0.0, 0.0, 1.0); // Black background
-    glEnable(GL_DEPTH_TEST);          // Enable depth testing
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glOrtho(-10, 10, -10, 10, 1, 100); // Orthographic projection
-    //gluPerspective(45.0, 1.0, 1.0, 100.0);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-}
+    void occupyPosition(int x, int y, int z) {
+        if(isPositionValid(x, y, z)) {
+            occupiedPositions[x][y][z] = true;
+        }
+    }
+
+    void releasePosition(int x, int y, int z) {
+        if(x >= 0 && x < BOARD_WIDTH_DEPTH &&
+           y >= 0 && y < BOARD_HEIGHT &&
+           z >= 0 && z < BOARD_WIDTH_DEPTH) {
+            occupiedPositions[x][y][z] = false;
+        }
+    }
+
+    bool checkAndClearFullLayers() {
+        bool layerCleared = false;
+        for(int y = 0; y < BOARD_HEIGHT; y++) {
+            if(isLayerFull(y)) {
+                clearLayer(y);
+                layerCleared = true;
+                // Stay on same layer as everything moved down
+                y--;
+            }
+        }
+        return layerCleared;
+    }
+
+    bool isGameOver() const {
+        // Check top layer for any occupied positions
+        for(int x = 0; x < BOARD_WIDTH_DEPTH; x++) {
+            for(int z = 0; z < BOARD_WIDTH_DEPTH; z++) {
+                if(occupiedPositions[x][BOARD_HEIGHT-1][z]) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    void lockTetromino(const Tetromino& t) {
+        const auto& blocks = t.getBlocks();
+        float posX = t.getPositionX();
+        float posY = t.getPositionY();
+        float posZ = t.getPositionZ();
+        
+        for(size_t i = 0; i < blocks.size(); ++i) {
+            for(size_t j = 0; j < blocks[i].size(); ++j) {
+                for(size_t k = 0; k < blocks[i][j].size(); ++k) {
+                    if(blocks[i][j][k] != 0) {
+                        int x = static_cast<int>(posX + i);
+                        int y = static_cast<int>(posY + j);
+                        int z = static_cast<int>(posZ + k);
+                        if(isPositionValid(x, y, z)) {
+                            occupyPosition(x, y, z);
+                        }
+                    }
+                }
+            }
+        }
+        checkAndClearFullLayers();
+    }
+
+    bool isValidPosition(const Tetromino& Tetromino) const {
+        const auto& blocks = Tetromino.getBlocks();
+        int posX = Tetromino.getPositionX();
+        int posY = Tetromino.getPositionY();
+        int posZ = Tetromino.getPositionZ();
+
+        for(int i = 0; i < GRID_SIZE; i++) {
+            for(int j = 0; j < GRID_SIZE; j++) {
+                for(int k = 0; k < GRID_SIZE; k++) {
+                    if(blocks[i][j][k] != 0) {
+                        int worldX = posX + i;
+                        int worldY = posY + j;
+                        int worldZ = posZ + k;
+                        
+                        // Check bounds and collisions
+                        if(worldX < 0 || worldX >= BOARD_WIDTH_DEPTH ||
+                           worldY < 0 || worldY >= BOARD_HEIGHT ||
+                           worldZ < 0 || worldZ >= BOARD_WIDTH_DEPTH ||
+                           occupiedPositions[worldX][worldY][worldZ]) {
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+        return true;
+    }
+};
+GameBoard gameboard;
+
+// Tetromino class definition
 class Tetromino {
 public:
+    // Tetromino shapes
     enum Shape { I, J, L, O, S, T, Z };
-
-    Tetromino(Shape shape) : shape(shape), position{4.5f,4.5f, 4.5f} {
+   
+    // Constructor
+    Tetromino(Shape shape) : shape(shape), posY(10.5f), posX(0.25f), posZ(0.25f),rotationX(0.0f), rotationY(0.0f), rotationZ(0.0f) {
         initializeShape();
     }
 
-    Shape getShape() const { return shape; }
-
-    const std::vector<std::vector<std::vector<int>>>& getBlocks() const { return blocks; }
-
-    void updatePosition(float dx, float dy, float dz) {
-        position[0] += dx;
-        position[1] += dy;
-        position[2] += dz;
+    // Get the shape of the Tetromino
+    Shape getShape() const {
+        return shape;
     }
 
-    std::array<float, 3> getPosition() const { return position; }
+    // Get the blocks of the Tetromino
+    const std::vector<std::vector<std::vector<int>>>& getBlocks() const {
+        return blocks;
+    }
 
-    void rotateX() { rotateShape('X'); } // Rotate around X-axis
-    void rotateY() { rotateShape('Y'); } // Rotate around Y-axis
-    void rotateZ() { rotateShape('Z'); } // Rotate around Z-axis
-     float getPositionY() const {
-        return position[1];
+    // Update the position of the Tetromino
+    void updatePosition(float fallSpeed) {
+        posY -= fallSpeed;
+        if (posY <= 0.25f) posY = 0.25f; // Reset position if it goes below the grid
+    }
+
+    // Move the Tetromino
+    void move(float dx, float dy, float dz) {
+        float newX = posX + dx;
+        float newY = posY + dy;
+        float newZ = posZ + dz;
+       
+        // Add bounds checking
+        if (newX >= 0 && newX < BOARD_WIDTH_DEPTH - blocks.size() &&
+            newY >= 0 && newY < BOARD_HEIGHT - blocks[0].size() &&
+            newZ >= 0 && newZ < BOARD_WIDTH_DEPTH - blocks[0][0].size()) {
+            posX = newX;
+            posY = newY;
+            posZ = newZ;
+        }
+    }
+
+    // Get the current Y position of the Tetromino
+    float getPositionY() const {
+        return posY;
     }
     float getPositionX() const {
-        return position[0];
+        return posX;
     }
     float getPositionZ() const {
-        return position[2];
+        return posZ;
+    }
+    float getRotationX() const {
+        return rotationX;
+    }
+    void setRotationX(float value) {
+        rotationX = value;
+    }
+    float getRotationY() const {
+        return rotationY;
+    }
+    void setRotationY(float value) {
+        rotationY = value;
+    }
+    float getRotationZ() const {
+        return rotationZ;
+    }
+    void setRotationZ(float value) {
+        rotationZ = value;
     }
 
-public:
+private:
     Shape shape;
-    std::vector<std::vector<std::vector<int>>> blocks; // 3D representation of Tetromino
-    std::array<float, 3> position;                      // {x, y, z}
+    std::vector<std::vector<std::vector<int>>> blocks;
+    float posY;
+    float posX;
+    float posZ;
+    float rotationX ;
+    float rotationY ;
+    float rotationZ ;
 
+
+    // Initialize the blocks of the Tetromino based on its shape
     void initializeShape() {
         switch (shape) {
-            case I: blocks = {{{1}, {1}, {1}, {1}}}; break; // 3D I shape
-            case J: blocks = {{{1, 0, 0}, {1, 1, 1}}}; break; // 3D J shape
-            case L: blocks = {{{0, 0, 1}, {1, 1, 1}}}; break; // 3D L shape
-            case O: blocks = {{{1, 1}, {1, 1}}}; break; // 3D O shape
-            case S: blocks = {{{0, 1, 1}, {1, 1, 0}}}; break; // 3D S shape
-            case T: blocks = {{{0, 1, 0}, {1, 1, 1}}}; break; // 3D T shape
-            case Z: blocks = {{{1, 1, 0}, {0, 1, 1}}}; break; // 3D Z shape
+            case I:
+                blocks = {{{1}, {1}, {1}, {1}}};
+                break;
+            case J:
+                blocks = {{{1, 0, 0}, {1, 1, 1}}};
+                break;
+            case L:
+                blocks = {{{0, 0, 1}, {1, 1, 1}}};
+                break;
+            case O:
+                blocks = {{{1, 1}, {1, 1}}};
+                break;
+            case S:
+                blocks = {{{0, 1, 1}, {1, 1, 0}}};
+                break;
+            case T:
+                blocks = {{{0, 1, 0}, {1, 1, 1}}};
+                break;
+            case Z:
+                blocks = {{{1, 1, 0}, {0, 1, 1}}};
+                break;
         }
     }
+    static const int GRID_SIZE = 4;
+    int dx, dy, dz;          // Local orientation (0-3)
+    
+public:
+    Tetromino(Shape shape) : 
+        posX(0), posY(BOARD_HEIGHT-1), posZ(0),
+        dx(0), dy(0), dz(0) {
+        blocks = std::vector<std::vector<std::vector<int>>>(
+            GRID_SIZE, 
+            std::vector<std::vector<int>>(
+                GRID_SIZE, 
+                std::vector<int>(GRID_SIZE, 0)
+            )
+        );
+        initializeShape();
+    }
 
-    void rotateShape(char axis) {
-        if (axis == 'X') {
-            // Rotate around X-axis
-            for (size_t i = 0; i < blocks.size(); i++) {
-                for (size_t j = 0; j < blocks[i].size(); j++) {
-                    for (size_t k = 0; k < blocks[i][j].size(); k++) {
-                        // Apply rotation formula for X-axis (Transpose)
-                        blocks[i][j][k] = blocks[i][j][k]; // Adjust accordingly for rotation logic
+    void rotateLocal(int axis) {
+        // Store original orientation
+        int oldDx = dx;
+        int oldDy = dy;
+        int oldDz = dz;
+
+        switch(axis) {
+            case 0: // X axis rotation
+                dy = (dy + 1) % 4;
+                dz = (dz + 3) % 4;
+                break;
+            case 1: // Y axis rotation
+                dx = (dx + 1) % 4;
+                dz = (dz + 3) % 4;
+                break;
+            case 2: // Z axis rotation
+                dx = (dx + 1) % 4;
+                dy = (dy + 3) % 4;
+                break;
+        }
+        
+        // Rotate blocks in 4x4x4 grid
+        std::vector<std::vector<std::vector<int>>> temp = blocks;
+        
+        for(int i = 0; i < GRID_SIZE; i++) {
+            for(int j = 0; j < GRID_SIZE; j++) {
+                for(int k = 0; k < GRID_SIZE; k++) {
+                    switch(axis) {
+                        case 0: // X axis
+                            blocks[i][k][GRID_SIZE-1-j] = temp[i][j][k];
+                            break;
+                        case 1: // Y axis
+                            blocks[k][j][GRID_SIZE-1-i] = temp[i][j][k];
+                            break;
+                        case 2: // Z axis
+                            blocks[GRID_SIZE-1-j][i][k] = temp[i][j][k];
+                            break;
                     }
                 }
             }
-        } else if (axis == 'Y') {
-            // Rotate around Y-axis
-            for (size_t i = 0; i < blocks.size(); i++) {
-                for (size_t j = 0; j < blocks[i].size(); j++) {
-                    for (size_t k = 0; k < blocks[i][j].size(); k++) {
-                        // Apply rotation formula for Y-axis
-                        blocks[i][j][k] = blocks[i][j][k]; // Adjust accordingly for rotation logic
+        }
+
+        // Check if rotation is valid using gameboard's isValidPosition
+        /*if (!gameboard.isValidPosition(*this)) {
+            blocks = temp;
+            dx = oldDx;
+            dy = oldDy; 
+            dz = oldDz;
+        }*/
+    }
+
+    bool isValidPosition(const GameBoard& gameboard) const {
+        for(int i = 0; i < GRID_SIZE; i++) {
+            for(int j = 0; j < GRID_SIZE; j++) {
+                for(int k = 0; k < GRID_SIZE; k++) {
+                    if(blocks[i][j][k] != 0) {
+                        int worldX = posX + i;
+                        int worldY = posY + j;
+                        int worldZ = posZ + k;
+                        
+                        // Check bounds and collisions
+                        if(worldX < 0 || worldX >= BOARD_WIDTH_DEPTH ||
+                           worldY < 0 || worldY >= BOARD_HEIGHT ||
+                           worldZ < 0 || worldZ >= BOARD_WIDTH_DEPTH ||
+                           gameboard.isPositionOccupied(worldX,worldY,worldZ)) {
+                            return false;
+                        }
                     }
                 }
             }
-        } else if (axis == 'Z') {
-        size_t n = blocks.size();
-        std::vector<std::vector<std::vector<int>>> rotated = blocks;
-
-        for (size_t i = 0; i < n; ++i) {
-            for (size_t j = 0; j < n; ++j) {
-                rotated[i][j] = blocks[n - 1 - j][i]; // Transpose and reverse
-            }
         }
-        blocks = rotated;
+        return true;
     }
-    // Similarly, add logic for X and Y axes
-}
+
+    // Getter methods for orientation
+    int getOrientationX() const { return dx; }
+    int getOrientationY() const { return dy; }
+    int getOrientationZ() const { return dz; }
+};
+
 
 // Function to display a Tetromino
-    void displayTetromino(const Tetromino& t, int color) {
+void displayTetromino(const Tetromino& t, int color) {
     const auto& blocks = t.getBlocks();
     float y = t.getPositionY();
     float x = t.getPositionX();
     float z = t.getPositionZ();
+    // Calculate center of the Tetromino
+    float centerX = blocks.size() / 2.0f;
+    float centerY = blocks[0].size() / 2.0f;
+    float centerZ = blocks[0][0].size() / 2.0f;
+   /* switch (t.getShape())
+    {
+    case Tetromino::I:
+        centerX = 0.5f;
+        centerY = 1.5f;
+        centerZ = 0.0f;
+        break;
+    case Tetromino::J:
+        centerX = 1.0f;
+        centerY = 0.5f;
+        centerZ = 0.0f;
+        break;
+    case Tetromino::L:
+        centerX = 1.0f;
+        centerY = 0.5f;
+        centerZ = 0.0f;
+        break;
+    case Tetromino::O:
+        centerX = 0.5f;
+        centerY = 0.5f;
+        centerZ = 0.0f;
+        break;
+    case Tetromino::S:
+        centerX = 0.5f;
+        centerY = 0.5f;
+        centerZ = 0.0f;
+        break;
+    case Tetromino::T:
+        centerX = 1.0f;
+        centerY = 0.5f;
+        centerZ = 0.0f;
+        break;
+    case Tetromino::Z:  
+        centerX = 0.5f;
+        centerY = 0.5f;
+        centerZ = 0.0f;
+        break;
+    default:
+        break;
+    }*/
+
+    glPushMatrix();
+   
+    // Move to Tetromino position
+    glTranslatef(x, y, z);
+   
+    // Then translate to center, rotate, and translate back
+    glTranslatef(centerX, centerY, centerZ);
+    glRotatef(t.getRotationX(), 1.0f, 0.0f, 0.0f);
+    glRotatef(t.getRotationY(), 0.0f, 1.0f, 0.0f);
+    glRotatef(t.getRotationZ(), 0.0f, 0.0f, 1.0f);
+    glTranslatef(-centerX, -centerY, -centerZ);
+
     // Set color based on the color parameter
     GLfloat r, g, b;
     switch (color) {
@@ -224,16 +478,60 @@ public:
             }
         }
     }
+    glPopMatrix();
 }
-void hardDrop(float groundLevel = 0.5f) {
-        position[1] = groundLevel;
+
+// Global variables for mouse control
+float angleX = 0.0f;
+float angleY = 0.0f;
+float zoom = 0.35f;
+float panX = 0.0f;
+float panY = 0.0f;
+int lastMouseX = 0;
+int lastMouseY = 0;
+bool isDragging = false;
+bool isPanning = false;
+
+
+// Global variables for Tetrominoes and fall speed
+std::vector<Tetromino> Tetrominoes;
+float fallSpeed = 0.5f; // Speed at which the Tetrominoes fall
+int fallInterval = 1000; // Time interval in milliseconds
+
+void rotateTetromino(int axis) {
+    if (selectedTetromino >= Tetrominoes.size()) return;
+   
+    // Rotate 90 degrees each time
+    const float ROTATION_ANGLE = 90.0f;
+   
+    switch(axis) {
+        case 0: // X axis
+            Tetrominoes[selectedTetromino].setRotationX(Tetrominoes[selectedTetromino].getRotationX() + ROTATION_ANGLE);
+            break;
+        case 1: // Y axis
+            Tetrominoes[selectedTetromino].setRotationY(Tetrominoes[selectedTetromino].getRotationY() + ROTATION_ANGLE);
+            break;  
+        case 2: // Z axis    
+            Tetrominoes[selectedTetromino].setRotationZ(Tetrominoes[selectedTetromino].getRotationZ() + ROTATION_ANGLE);
+            break;    
+
     }
-};
-Tetromino tetromino(Tetromino::L);
+}
+// Function to initialize OpenGL settings
+void init() {
+    glClearColor(0.0, 0.0, 0.0, 1.0); // Black background
+    glEnable(GL_DEPTH_TEST);          // Enable depth testing
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(-10, 10, -10, 10, 1, 100);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    gluLookAt(10.0, 10.0, 10.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+}
 
 // Function to display the grid
 void displayGrid() {
-    int n = 15; // Grid length
+    int n = BOARD_WIDTH_DEPTH; // Grid length
     glBegin(GL_LINES);
     for (int i = 0; i <= n; i++) {
         // Set color (X-Z plane in red)
@@ -262,106 +560,235 @@ void displayGrid() {
     }
     glEnd();
 }
-void keyboard(unsigned char key, int x, int y) {
-    switch (key) {
-        case 'a': tetromino.updatePosition(-1, 0, 0); break; // Move left (X-axis)
-        case 'd': tetromino.updatePosition(1, 0, 0); break;  // Move right (X-axis)
-        case 'w': tetromino.updatePosition(0, 0, -1); break; // Move forward (Z-axis)
-        case 's': tetromino.updatePosition(0, 0, 1); break;  // Move backward (Z-axis)
-        case 'x': tetromino.updatePosition(0, -1, 0); break; // Move down (Y-axis)
-        case ' ': tetromino.hardDrop(0); break;              // Hard drop to ground level
-        case 'r': tetromino.rotateX(); break;               // Rotate around X-axis
-        case 't': tetromino.rotateY(); break;               // Rotate around Y-axis
-        case 'y': tetromino.rotateZ(); break;               // Rotate around Z-axis
-        default: break;
-    }
-    glutPostRedisplay();
+
+// Function to set up the camera view
+void updateCamera() {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glPushMatrix();
+    glTranslatef(panX, panY, 0.00f); // Apply panning
+    glScalef(zoom, zoom, zoom); // Apply zoom
+    // glRotatef(cameraPitch, 0.0f, 0.0f, 1.0f); // Rotate around camera's X-axis
+    glRotatef(cameraYaw, 0.0f, 1.0f, 0.0f);   // Rotate around camera's Y-axis
+
 }
 
-// Special keys callback (arrow keys)
-void specialKeys(int key, int x, int y) {
-    switch (key) {
-        case GLUT_KEY_LEFT: tetromino.updatePosition(-1, 0, 0); break; // Move left
-        case GLUT_KEY_RIGHT: tetromino.updatePosition(1, 0, 0); break; // Move right
-        case GLUT_KEY_UP: tetromino.updatePosition(0, 0, -1); break;   // Move forward
-        case GLUT_KEY_DOWN: tetromino.updatePosition(0, 0, 1); break;  // Move backward
-        default: break;
-    }
-    glutPostRedisplay();
-}
-void testTetromino() {
-    // Create a Tetromino (for example, a "T" shape)
-    Tetromino tetromino(Tetromino::T);
-    
-    // Move the Tetromino
-    tetromino.updatePosition(1.0f, 0.0f, 0.0f);
-
-    // Rotate the Tetromino
-    tetromino.rotateZ(); // Rotate by Z axis
-
-    // Output the current position of the Tetromino for debugging
-    auto pos = tetromino.getPosition();
-    std::cout << "Tetromino Position: (" 
-              << pos[0] << ", " << pos[1] << ", " << pos[2] << ")\n";
-
-    // Display the blocks of the tetromino (for debugging purposes)
-    for (const auto& layer : tetromino.getBlocks()) {
-        for (const auto& row : layer) {
-            for (int cell : row) {
-                std::cout << cell << " ";
-            }
-            std::cout << std::endl;
-        }
-        std::cout << std::endl;
-    }
-}
 // Display callback
 void display() {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    testTetromino(); // Call the test function to display Tetromino
-    tetromino.displayTetromino(tetromino,2); // Using green color (color index 1)
-    // Update the camera
-    updateCamera();
+   
+    updateCamera(); // Update the camera view
 
-    // Draw the grid
     displayGrid();
 
+    // Display all Tetrominoes
+    for (size_t i = 0; i < Tetrominoes.size(); ++i) {
+        displayTetromino(Tetrominoes[i], i % 6); // Display each Tetromino with a different color
+    }
+    glPopMatrix();
+
     glutSwapBuffers();
+    glFlush();
 }
 
+// Function to check if the Tetromino is above the grid or another Tetromino
+bool checkCollision(const Tetromino& t) {
+    if (t.getPositionY() <= 0.25f) {
 
-void idle() {
-    rotationAngle += 0.1f; // Rotate the scene slowly
-    if (rotationAngle > 360.0f) rotationAngle -= 360.0f;
+        return true;
+    }
+    // Check collision with other Tetrominoes
+    for (size_t i = 0; i < Tetrominoes.size(); ++i) {
+        if (i != selectedTetromino) {
+            const auto& blocks = Tetrominoes[i].getBlocks();
+            float y = Tetrominoes[i].getPositionY();
+            float x = Tetrominoes[i].getPositionX();
+            float z = Tetrominoes[i].getPositionZ();
+
+            for (size_t bi = 0; bi < blocks.size(); ++bi) {
+                for (size_t bj = 0; bj < blocks[bi].size(); ++bj) {
+                    for (size_t bk = 0; bk < blocks[bi][bj].size(); ++bk) {
+                        if (blocks[bi][bj][bk] != 0) {
+                            if (std::abs(t.getPositionX() - (x + bi)) < 0.5f &&
+                                std::abs(t.getPositionY() - (y + bj)) < 0.5f &&
+                                std::abs(t.getPositionZ() - (z + bk)) < 0.5f) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
+
+// Timer function to update the Tetrominoes' positions
+void timer(int value) {
+    if (selectedTetromino < Tetrominoes.size()) {
+        Tetrominoes[selectedTetromino].updatePosition(fallSpeed); // Update the position of the selected Tetromino
+
+        // Check if the Tetromino has reached the ground or landed on another Tetromino
+        if (checkCollision(Tetrominoes[selectedTetromino])) {
+            // Freeze the Tetromino and create a new one
+            selectedTetromino++;
+            if (selectedTetromino < Tetrominoes.size()) {
+                Tetrominoes.push_back(Tetromino(static_cast<Tetromino::Shape>(rand() % 7)));
+            }
+        }
+    }
+
+    glutPostRedisplay(); // Request a redraw
+    glutTimerFunc(fallInterval, timer, 0); // Set the timer again
+}
+
+// Mouse button callback
+void mouseButton(int button, int state, int x, int y) {
+    if (button == GLUT_LEFT_BUTTON) {
+        if (state == GLUT_DOWN) {
+            isDragging = true;
+            lastMouseX = x;
+            lastMouseY = y;
+        } else if (state == GLUT_UP) {
+            isDragging = false;
+        }
+    } else if (button == GLUT_RIGHT_BUTTON) {
+        if (state == GLUT_DOWN) {
+            isPanning = true;
+            lastMouseX = x;
+            lastMouseY = y;
+        } else if (state == GLUT_UP) {
+            isPanning = false;
+        }
+    }
+}
+
+// Mouse motion callback
+void mouseMotion(int x, int y) {
+    if (isDragging) {
+        // Calculate mouse movement
+        float deltaX = (x - lastMouseX) * 0.2f; // Sensitivity factor
+        float deltaY = (y - lastMouseY) * 0.2f;
+
+        // Update yaw and pitch
+        cameraYaw += deltaX;
+        cameraPitch += deltaY;
+
+        // Clamp pitch to avoid flipping (optional)
+        if (cameraPitch > 89.0f) cameraPitch = 89.0f;
+        if (cameraPitch < -89.0f) cameraPitch = -89.0f;
+
+        // Update last mouse position
+        lastMouseX = x;
+        lastMouseY = y;
+
+        // Redraw the scene with the updated camera
+        glutPostRedisplay();
+    } else if (isPanning) {
+        int dx = x - lastMouseX;
+        int dy = y - lastMouseY;
+
+        panX += dx * 0.05f;
+        panY -= dy * 0.05f;
+
+        lastMouseX = x;
+        lastMouseY = y;
+
+        glutPostRedisplay();
+    }
+}
+
+// Mouse wheel callback (FreeGLUT-specific)
+void mouseWheel(int button, int dir, int x, int y) {
+    // Zoom in or out based on mouse wheel direction
+    if (dir > 0) {
+        zoom *= 1.1f; // Zoom in
+    } else {
+        zoom /= 1.1f; // Zoom out
+    }
     glutPostRedisplay();
 }
+
+// Mouse function to handle both button and wheel events
+void mouseFunc(int button, int state, int x, int y) {
+    if (button == 3 || button == 4) { // Scroll up or down
+        mouseWheel(button, (button == 3) ? 1 : -1, x, y);
+    } else {
+        mouseButton(button, state, x, y);
+    }
+}
+
+// Keyboard callback to reset the camera view and control Tetromino
+void keyboard(unsigned char key, int x, int y) {
+    if (key == 'x' || key == 'X') {
+        // Reset camera to initial view
+        cameraPitch = initialCameraPitch;
+        cameraYaw = initialCameraYaw;
+        zoom = 0.35f;
+        panX = 0.0f;
+        panY = 0.0f;
+        glutPostRedisplay();
+    } else if (key == 'a' || key == 'A') {
+        // Move selected Tetromino left
+        Tetrominoes[selectedTetromino].move(-0.5f, 0.0f, 0.0f);
+        glutPostRedisplay();
+    } else if (key == 'd' || key == 'D') {
+        // Move selected Tetromino right
+        Tetrominoes[selectedTetromino].move(0.5f, 0.0f, 0.0f);
+        glutPostRedisplay();
+    } else if (key == 'w' || key == 'W') {
+        // Move selected Tetromino up
+        Tetrominoes[selectedTetromino].move(0.0f, 0.0f, -0.5f);
+        glutPostRedisplay();
+    } else if (key == 's' || key == 'S') {
+        // Move selected Tetromino backward
+        Tetrominoes[selectedTetromino].move(0.0f, 0.0f, 0.5f);
+        glutPostRedisplay();
+    } else if (key == 'q' || key == 'Q') {
+        // Move selected Tetromino down
+        if (!checkCollision(Tetrominoes[selectedTetromino])) {
+            Tetrominoes[selectedTetromino].move(0.0f, -0.5f, 0.0f);
+            glutPostRedisplay();
+        }
+    } else if (key == 'e' || key == 'E') {
+        // Rotate the selected Tetromino around the X-axis
+        rotateTetromino(0);
+        glutPostRedisplay();
+    } else if (key == 'r' || key == 'R') {
+        // Rotate the selected Tetromino around the Y-axis
+        rotateTetromino(1);
+        glutPostRedisplay();
+    } else if (key == 'f' || key == 'F') {
+        // Rotate the selected Tetromino around the Z-axis
+        rotateTetromino(2);
+
+        glutPostRedisplay();
+    }
+}
+
 
 // Main function
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-    glutInitWindowSize(800, 600);
-    glutCreateWindow("3D Camera with Zoom");
+    glutInitWindowSize(1920, 1080);
+    glutCreateWindow("3D Tetrominoes");
 
     init();
 
     // Register callbacks
     glutDisplayFunc(display);
-    glutMouseFunc(mouseButton);
+    glutMouseFunc(mouseFunc);
     glutMotionFunc(mouseMotion);
+    glutKeyboardFunc(keyboard); // Register keyboard callback
+    glutTimerFunc(fallInterval, timer, 0); // R    glutKeyboardFunc(ke
+    // Initialize Tetrominoes
+    Tetrominoes.push_back(Tetromino(Tetromino::I));
+   //Tetrominoes.push_back(Tetromino(Tetromino::J));
+    //Tetrominoes.push_back(Tetromino(Tetromino::L));
+    //Tetrominoes.push_back(Tetromino(Tetromino::S));
+    //Tetrominoes.push_back(Tetromino(Tetromino::T));
+    //Tetrominoes.push_back(Tetromino(Tetromino::Z));
 
-    // Use FreeGLUT's mouse wheel support if available
-    glutMouseFunc([](int button, int state, int x, int y) {
-        if (button == 3) { // Scroll up
-            mouseWheel(button, 1, x, y);
-        } else if (button == 4) { // Scroll down
-            mouseWheel(button, -1, x, y);
-        } else {
-            mouseButton(button, state, x, y);
-        }
-    });
-    glutKeyboardFunc(keyboard);
-    glutSpecialFunc(specialKeys);
     glutMainLoop();
     return 0;
 }
