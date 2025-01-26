@@ -21,7 +21,7 @@ public:
     enum Shape { I, J, L, O, S, T, Z };
    
     // Constructor
-    tetromino(Shape shape) : shape(shape), posY(10.5f), posX(0.25f), posZ(0.25f),rotationX(0.0f), rotationY(0.0f), rotationZ(0.0f) {
+    tetromino(Shape shape) : shape(shape), posY(11.0f), posX(0.5f), posZ(0.5f),rotationX(0.0f), rotationY(0.0f), rotationZ(0.0f) {
         initializeShape();
     }
 
@@ -38,7 +38,7 @@ public:
     // Update the position of the tetromino
     void updatePosition(float fallSpeed) {
         posY -= fallSpeed;
-        if (posY <= 0.25f) posY = 0.25f; // Reset position if it goes below the grid
+        if (posY <= 1.0f) posY = 1.0f; // Reset position if it goes below the grid
     }
 
     // Move the tetromino
@@ -158,46 +158,6 @@ void displayTetromino(const tetromino& t, int color) {
     float centerX = (minX + maxX) / 2.0f;
     float centerY = (minY + maxY) / 2.0f;
     float centerZ = (minZ + maxZ) / 2.0f;
-   /* switch (t.getShape())
-    {
-    case tetromino::I:
-        centerX = 0.5f;
-        centerY = 1.5f;
-        centerZ = 0.0f;
-        break;
-    case tetromino::J:
-        centerX = 1.0f;
-        centerY = 0.5f;
-        centerZ = 0.0f;
-        break;
-    case tetromino::L:
-        centerX = 1.0f;
-        centerY = 0.5f;
-        centerZ = 0.0f;
-        break;
-    case tetromino::O:
-        centerX = 0.5f;
-        centerY = 0.5f;
-        centerZ = 0.0f;
-        break;
-    case tetromino::S:
-        centerX = 0.5f;
-        centerY = 0.5f;
-        centerZ = 0.0f;
-        break;
-    case tetromino::T:
-        centerX = 1.0f;
-        centerY = 0.5f;
-        centerZ = 0.0f;
-        break;
-    case tetromino::Z:  
-        centerX = 0.5f;
-        centerY = 0.5f;
-        centerZ = 0.0f;
-        break;
-    default:
-        break;
-    }*/
     // In displayTetromino function
     glPushMatrix();
 
@@ -249,48 +209,6 @@ void displayTetromino(const tetromino& t, int color) {
     }
 
     glPopMatrix();
-    // glPushMatrix();
-   
-    // // Move to tetromino position
-    // glTranslatef(x, y, z);
-   
-    // // Then translate to center, rotate, and translate back
-    // glTranslatef(centerX, centerY, centerZ);
-    // glRotatef(t.getRotationX(), t.getPositionX(), 0.0f, 0.0f);
-    // glRotatef(t.getRotationY(), 0.0f, 1.0f, 0.0f);
-    // glRotatef(t.getRotationZ(), 0.0f, 0.0f, 1.0f);
-    // glTranslatef(-centerX, -centerY, -centerZ);
-
-    
-
-    // // Draw each block of the Tetromino
-    // for (size_t i = 0; i < blocks.size(); ++i) {
-    //     for (size_t j = 0; j < blocks[i].size(); ++j) {
-    //         for (size_t k = 0; k < blocks[i][j].size(); ++k) {
-    //             if (blocks[i][j][k] != 0) {
-    //                 glPushMatrix();
-    //                 glTranslatef(x + i, y + j, z + k);
-
-    //                 // Set color for the solid cube
-    //                 glColor3f(r, g, b);
-    //                 glutSolidCube(1);
-
-    //                 // Calculate darker shade for the wireframe
-    //                 GLfloat darkR = r * 0.5f;
-    //                 GLfloat darkG = g * 0.5f;
-    //                 GLfloat darkB = b * 0.5f;
-
-    //                 // Draw wireframe edges
-    //                 glLineWidth(2.0f); // Set line width to 2.0
-    //                 glColor3f(darkR, darkG, darkB); // Set edge color to darker shade
-    //                 glutWireCube(1.01); // Slightly larger to avoid z-fighting
-
-    //                 glPopMatrix();
-    //             }
-    //         }
-    //     }
-    // }
-    // glPopMatrix();
 }
 
 // Global variables for mouse control
@@ -307,8 +225,8 @@ bool isPanning = false;
 
 // Global variables for Tetrominoes and fall speed
 std::vector<tetromino> tetrominoes;
-float fallSpeed = 0.5f; // Speed at which the Tetrominoes fall
-int fallInterval = 1000; // Time interval in milliseconds
+float fallSpeed = 1.0f; // Speed at which the Tetrominoes fall
+int fallInterval = 2000; // Time interval in milliseconds
 
 void rotateTetromino(int axis) {
     if (selectedTetromino >= tetrominoes.size()) return;
@@ -404,55 +322,103 @@ void display() {
 
 // Function to check if the Tetromino is above the grid or another Tetromino
 bool checkCollision(const tetromino& t) {
-    if (t.getPositionY() <= 0.25f) {
-
+    // Check floor collision
+    if (t.getPositionY() <= 1.0f) {
         return true;
     }
+
+    const auto& currentBlocks = t.getBlocks();
+    float currentX = t.getPositionX();
+    float currentY = t.getPositionY();
+    float currentZ = t.getPositionZ();
+
     // Check collision with other Tetrominoes
     for (size_t i = 0; i < tetrominoes.size(); ++i) {
         if (i != selectedTetromino) {
-            const auto& blocks = tetrominoes[i].getBlocks();
-            float y = tetrominoes[i].getPositionY();
-            float x = tetrominoes[i].getPositionX();
-            float z = tetrominoes[i].getPositionZ();
+            const auto& otherBlocks = tetrominoes[i].getBlocks();
+            float otherX = tetrominoes[i].getPositionX();
+            float otherY = tetrominoes[i].getPositionY();
+            float otherZ = tetrominoes[i].getPositionZ();
 
-            for (size_t bi = 0; bi < blocks.size(); ++bi) {
-                for (size_t bj = 0; bj < blocks[bi].size(); ++bj) {
-                    for (size_t bk = 0; bk < blocks[bi][bj].size(); ++bk) {
-                        if (blocks[bi][bj][bk] != 0) {
-                            if (std::abs(t.getPositionX() - (x + bi)) < 0.5f &&
-                                std::abs(t.getPositionY() - (y + bj)) < 0.5f &&
-                                std::abs(t.getPositionZ() - (z + bk)) < 0.5f) {
-                                return true;
-                            }
+            // Check each block of current tetromino against each block of other tetromino
+            for (size_t ci = 0; ci < currentBlocks.size(); ++ci) {
+                for (size_t cj = 0; cj < currentBlocks[ci].size(); ++cj) {
+                    for (size_t ck = 0; ck < currentBlocks[ci][cj].size(); ++ck) {
+                        if (currentBlocks[ci][cj][ck] != 0) {
+                            float currentBlockX = currentX + ci;
+                            float currentBlockY = currentY + cj;
+                            float currentBlockZ = currentZ + ck;
+                            std::cout << "Current Block: " << currentBlockX << " " << currentBlockY << " " << currentBlockZ << std::endl;
+                            // for (size_t oi = 0; oi < otherBlocks.size(); ++oi) {
+                            //     for (size_t oj = 0; oj < otherBlocks[oi].size(); ++oj) {
+                            //         for (size_t ok = 0; ok < otherBlocks[oi][oj].size(); ++ok) {
+                            //             if (otherBlocks[oi][oj][ok] != 0) {
+                            //                 float otherBlockX = otherX + oi;
+                            //                 float otherBlockY = otherY + oj;
+                            //                 float otherBlockZ = otherZ + ok;
+
+                            //                 // Check if blocks intersect
+                            //                 if (std::abs(currentBlockX - otherBlockX) < 0.1f &&
+                            //                     std::abs(currentBlockY - otherBlockY) < 0.1f &&
+                            //                     std::abs(currentBlockZ - otherBlockZ) < 0.1f) {
+                            //                     return true;
+                            //                 }
+                            //             }
+                            //         }
+                            //     }
+                            // }
                         }
                     }
                 }
             }
         }
     }
+
+    // Check wall boundaries
+    // for (size_t i = 0; i < currentBlocks.size(); ++i) {
+    //     for (size_t j = 0; j < currentBlocks[i].size(); ++j) {
+    //         for (size_t k = 0; k < currentBlocks[i][j].size(); ++k) {
+    //             if (currentBlocks[i][j][k] != 0) {
+    //                 float blockX = currentX + i;
+    //                 float blockY = currentY + j;
+    //                 float blockZ = currentZ + k;
+
+    //                 // Check boundaries (assuming 15x15x15 grid from your code)
+    //                 if (blockX < 0 || blockX >= 15 ||
+    //                     blockY < 0 || blockY >= 15 ||
+    //                     blockZ < 0 || blockZ >= 15) {
+    //                     return true;
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
+
     return false;
 }
 
 // Timer function to update the Tetrominoes' positions
 void timer(int value) {
     if (selectedTetromino < tetrominoes.size()) {
-        tetrominoes[selectedTetromino].updatePosition(fallSpeed); // Update the position of the selected Tetromino
-
-        // Check if the Tetromino has reached the ground or landed on another Tetromino
-        if (checkCollision(tetrominoes[selectedTetromino])) {
-            // Freeze the Tetromino and create a new one
+        tetromino& current = tetrominoes[selectedTetromino];
+        float oldY = current.getPositionY();
+        
+        // Preview movement
+        current.move(0, -0.1f, 0);
+        
+        if (checkCollision(current)) {
+            current.move(0, 0.1f, 0);  // Restore position
             selectedTetromino++;
-            if (selectedTetromino < tetrominoes.size()) {
-                tetrominoes.push_back(tetromino(static_cast<tetromino::Shape>(rand() % 7)));
-            }
+            tetrominoes.push_back(tetromino(static_cast<tetromino::Shape>(rand() % 7)));
+        }
+        else {
+            current.move(0, -0.9f, 0);  // Complete the movement
         }
     }
-
-    glutPostRedisplay(); // Request a redraw
-    glutTimerFunc(fallInterval, timer, 0); // Set the timer again
+    
+    glutPostRedisplay();
+    glutTimerFunc(fallInterval, timer, 0);
 }
-
 // Mouse button callback
 void mouseButton(int button, int state, int x, int y) {
     if (button == GLUT_LEFT_BUTTON) {
@@ -541,24 +507,24 @@ void keyboard(unsigned char key, int x, int y) {
         glutPostRedisplay();
     } else if (key == 'a' || key == 'A') {
         // Move selected Tetromino left
-        tetrominoes[selectedTetromino].move(-0.5f, 0.0f, 0.0f);
+        tetrominoes[selectedTetromino].move(-1.0f, 0.0f, 0.0f);
         glutPostRedisplay();
     } else if (key == 'd' || key == 'D') {
         // Move selected Tetromino right
-        tetrominoes[selectedTetromino].move(0.5f, 0.0f, 0.0f);
+        tetrominoes[selectedTetromino].move(1.0f, 0.0f, 0.0f);
         glutPostRedisplay();
     } else if (key == 'w' || key == 'W') {
         // Move selected Tetromino up
-        tetrominoes[selectedTetromino].move(0.0f, 0.0f, -0.5f);
+        tetrominoes[selectedTetromino].move(0.0f, 0.0f, -1.0f);
         glutPostRedisplay();
     } else if (key == 's' || key == 'S') {
         // Move selected Tetromino backward
-        tetrominoes[selectedTetromino].move(0.0f, 0.0f, 0.5f);
+        tetrominoes[selectedTetromino].move(0.0f, 0.0f, 1.0f);
         glutPostRedisplay();
     } else if (key == 'q' || key == 'Q') {
         // Move selected Tetromino down
         if (!checkCollision(tetrominoes[selectedTetromino])) {
-            tetrominoes[selectedTetromino].move(0.0f, -0.5f, 0.0f);
+            tetrominoes[selectedTetromino].move(0.0f, -1.0f, 0.0f);
             glutPostRedisplay();
         }
     } else if (key == 'e' || key == 'E') {
@@ -595,13 +561,20 @@ int main(int argc, char** argv) {
     glutTimerFunc(fallInterval, timer, 0); // Register Timer Function
 
     // Initialize Tetrominoes
-    //tetrominoes.push_back(tetromino(tetromino::I));
-    tetrominoes.push_back(tetromino(tetromino::J));
-    //tetrominoes.push_back(tetromino(tetromino::L));
-    //tetrominoes.push_back(tetromino(tetromino::O));
-    //tetrominoes.push_back(tetromino(tetromino::S));
-    //tetrominoes.push_back(tetromino(tetromino::T));
-    //tetrominoes.push_back(tetromino(tetromino::Z));
+    tetrominoes.push_back(tetromino(tetromino::I));
+    // tetrominoes.push_back(tetromino(tetromino::I));
+    // tetrominoes.push_back(tetromino(tetromino::I));
+    // tetrominoes.push_back(tetromino(tetromino::I));
+    // tetrominoes.push_back(tetromino(tetromino::I));
+    // tetrominoes.push_back(tetromino(tetromino::I));
+    // tetrominoes.push_back(tetromino(tetromino::I));
+    
+    // tetrominoes.push_back(tetromino(tetromino::J));
+    // tetrominoes.push_back(tetromino(tetromino::L));
+    // tetrominoes.push_back(tetromino(tetromino::O));
+    // tetrominoes.push_back(tetromino(tetromino::S));
+    // tetrominoes.push_back(tetromino(tetromino::T));
+    // tetrominoes.push_back(tetromino(tetromino::Z));
 
     glutMainLoop();
     return 0;
