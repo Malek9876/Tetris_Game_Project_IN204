@@ -30,7 +30,7 @@ Assurez-vous d'avoir les outils suivants installés sur votre système :
 ### **Instructions**
 2. Installez les dependecies :
    ```bash
-    sudo apt-get install build-essential freeglut3 
+   sudo apt-get install build-essential freeglut3 
    ```
 
 2. Clonez le dépôt :
@@ -79,8 +79,8 @@ Assurez-vous d'avoir les outils suivants installés sur votre système :
 ---
 
 ## Contributeurs
-- [Malek BelKahla]
-- [Elyes Bouaziz]
+- Malek BelKahla
+- Elyes Bouaziz
 
 ---
 
