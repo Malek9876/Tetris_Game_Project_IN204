@@ -231,8 +231,6 @@ private:
                 newZ = y * sinA + z * cosA;
                 std::get<1>(pos) = newY + centerY;
                 std::get<2>(pos) = newZ + centerZ;
-                //std::get<2>(pos) = floor(std::get<2>(pos))+0.5;
-                //std::get<1>(pos) = int(std::get<1>(pos));
                 break;
 
             case 1: // Y-axis rotation
@@ -240,8 +238,6 @@ private:
                 newZ = -x * sinA + z * cosA;
                 std::get<0>(pos) = newX + centerX;
                 std::get<2>(pos) = newZ + centerZ;
-                //std::get<2>(pos) = floor(std::get<2>(pos))+0.5;
-                //std::get<0>(pos) = floor(std::get<0>(pos))+0.5;
                 break;
 
             case 2: // Z-axis rotation
@@ -249,8 +245,7 @@ private:
                 newY = x * sinA + y * cosA;
                 std::get<0>(pos) = newX + centerX;
                 std::get<1>(pos) = newY + centerY;
-                //std::get<1>(pos) = (std::get<1>(pos));
-               //std::get<0>(pos) = floor(std::get<0>(pos))+0.5;
+                
                 break;
         }
         std::cout<<"new rotation  x:"<<std::get<0>(pos)<<" y:"<<std::get<1>(pos)<<" z:"<<std::get<2>(pos)<<std::endl;
