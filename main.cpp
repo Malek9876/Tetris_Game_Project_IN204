@@ -3,8 +3,6 @@
 #include <cmath>
 #include <vector>
 #include <iostream>
-#include <cfloat>
-#include <cctype>
 #include <tuple>
 
 int n = 10; // Grid length
@@ -145,7 +143,6 @@ public:
                 break;
             }
         }
-
         // Revert if invalid
         if(!isValid) {
             blockPositions = originalPositions;
@@ -248,10 +245,7 @@ private:
                 
                 break;
         }
-        std::cout<<"new rotation  x:"<<std::get<0>(pos)<<" y:"<<std::get<1>(pos)<<" z:"<<std::get<2>(pos)<<std::endl;
-        //glutPostRedisplay();
     }
-    std::cout<<"--------------------------"<<std::endl;
 }
 };
 
@@ -318,7 +312,6 @@ void displayTetromino(const tetromino& t, int color) {
         glutPostRedisplay();
 
     }
-    
     glPopMatrix();
 }
 
@@ -351,31 +344,7 @@ void init() {
 void displayGrid() {
     
     glBegin(GL_LINES);
-    for (int i = 0; i <= n; i++) /*{
-        // Set color (X-Z plane in red)
-        glColor3f(1, 0, 0);
-        glVertex3f(i, 0, 0);
-        glVertex3f(i, 0, n);
-
-        glVertex3f(0, 0, i);
-        glVertex3f(n, 0, i);
-
-        // Set color (Y-Z plane in green)
-        glColor3f(0, 1, 0);
-        glVertex3f(0, 2*i, 0);
-        glVertex3f(0, 2*i, n);
-
-        glVertex3f(0, 0, i);
-        glVertex3f(0, 2*n, i);
-
-        // Set color (X-Y plane in cyan)
-        glColor3f(0, 1, 1);
-        glVertex3f(i, 0, 0);
-        glVertex3f(i, 2*n, 0);
-
-        glVertex3f(0, 2*i, 0);
-        glVertex3f(n, 2*i, 0);
-    }*/
+    for (int i = 0; i <= n; i++)
         {
         // set colour
         glColor3f(1, 0, 0);
@@ -434,6 +403,7 @@ void display() {
     // Display all Tetrominoes
     for (size_t i = 0; i < tetrominoes.size(); ++i) {
         displayTetromino(tetrominoes[i], i % 6); // Display each Tetromino with a different color
+        
     }
     glPopMatrix();
 
@@ -473,17 +443,9 @@ void timer(int value) {
     if (!isPaused) {
     if (selectedTetromino < tetrominoes.size()) {
         tetromino& current = tetrominoes[selectedTetromino];
-        //float oldY = current.getPositionY();
-        
-        for (auto& pos : current.getBlockPositions()) {
-            std::cout << "X: " << std::get<0>(pos) << " Y: " << std::get<1>(pos) << " Z: " << std::get<2>(pos) << std::endl;
-        }
-        std::cout<<"==============================="<<std::endl;
-        // Preview movement
-        // //current.move(0, -0.1f, 0);
-        
+       
+
         if (checkCollision(current)) {
-            // current.move(0, 0.1f, 0);  // Restore position
             selectedTetromino++;
             tetrominoes.push_back(tetromino(static_cast<tetromino::Shape>(rand() % 5)));
         }
@@ -596,57 +558,47 @@ void keyboard(unsigned char key, int x, int y) {
             zoom = 0.35f;
             panX = 0.0f;
             panY = 0.0f;
-            //glutPostRedisplay();
             break;
 
         case 'A':
             // Move selected Tetromino left
             tetrominoes[selectedTetromino].move(-1.0f, 0.0f, 0.0f);
-            //glutPostRedisplay();
             break;
 
         case 'D':
             // Move selected Tetromino right
             tetrominoes[selectedTetromino].move(1.0f, 0.0f, 0.0f);
-            //glutPostRedisplay();
             break;
 
         case 'W':
             // Move selected Tetromino up
             tetrominoes[selectedTetromino].move(0.0f, 0.0f, -1.0f);
-            //glutPostRedisplay();
             break;
 
         case 'S':
             // Move selected Tetromino backward
             tetrominoes[selectedTetromino].move(0.0f, 0.0f, 1.0f);
-            //glutPostRedisplay();
             break;
-
         case 'Q':
             // Move selected Tetromino down
             if (!checkCollision(tetrominoes[selectedTetromino])) {
                 tetrominoes[selectedTetromino].move(0.0f, -1.0f, 0.0f);
-                //glutPostRedisplay();
             }
             break;
 
         case 'E':
             // Rotate the selected Tetromino around the X-axis
             rotateTetromino(0);
-            //glutPostRedisplay();
             break;
 
         case 'R':
             // Rotate the selected Tetromino around the Y-axis
-            rotateTetromino(1);
-            //glutPostRedisplay();
+            rotateTetromino(1);   
             break;
 
         case 'F':
             // Rotate the selected Tetromino around the Z-axis
             rotateTetromino(2);
-            //glutPostRedisplay();
             break;
 
         default:
@@ -678,20 +630,6 @@ int main(int argc, char** argv) {
 
     // Initialize Tetrominoes
     tetrominoes.push_back(tetromino(tetromino::I));
-    // tetrominoes.push_back(tetromino(tetromino::I));
-    // tetrominoes.push_back(tetromino(tetromino::I));
-    // tetrominoes.push_back(tetromino(tetromino::I));
-    // tetrominoes.push_back(tetromino(tetromino::I));
-    // tetrominoes.push_back(tetromino(tetromino::I));
-    // tetrominoes.push_back(tetromino(tetromino::I));
-    
-    // tetrominoes.push_back(tetromino(tetromino::J));
-    // tetrominoes.push_back(tetromino(tetromino::L));
-    // tetrominoes.push_back(tetromino(tetromino::O));
-    // tetrominoes.push_back(tetromino(tetromino::S));
-    // tetrominoes.push_back(tetromino(tetromino::T));
-    // tetrominoes.push_back(tetromino(tetromino::Z));
-
     glutMainLoop();
     return 0;
 }
