@@ -155,7 +155,7 @@ public:
                 case 2: rotationZ -= angle; break;
             }
         }
-        glutPostRedisplay();
+        //glutPostRedisplay();
     }
 
 private:
@@ -249,7 +249,7 @@ private:
                 break;
         }
         std::cout<<"new rotation  x:"<<std::get<0>(pos)<<" y:"<<std::get<1>(pos)<<" z:"<<std::get<2>(pos)<<std::endl;
-        glutPostRedisplay();
+        //glutPostRedisplay();
     }
     std::cout<<"--------------------------"<<std::endl;
 }
@@ -492,7 +492,7 @@ void timer(int value) {
         }
     }
     
-    glutPostRedisplay();
+    //glutPostRedisplay();
     glutTimerFunc(fallInterval, timer, 0);
     }
     else {
@@ -653,6 +653,7 @@ void keyboard(unsigned char key, int x, int y) {
             // No action for other keys
             break;
     }
+    glutPostRedisplay();
     
    
 }
