@@ -35,16 +35,16 @@ Assurez-vous d'avoir les outils suivants installés sur votre système :
 
 2. Clonez le dépôt :
    ```bash
-   git clone https://github.com/votre-repo/tetris-3d.git
-   cd tetris-3d
+   git clone https://github.com/Malek9876/Tetris_Game_Project_IN204
+   cd Tetris_Game_Project_IN204
    ```
 3. Compilez le projet (avec g++ par exemple) :
    ```bash
-   g++ -o tetris3d testnew.cpp -lGL -lGLU -lglut
+   make
    ```
 4. Lancez le jeu :
    ```bash
-   ./tetris3d
+   ./TETRIS_3D
    ```
 
 ---
@@ -82,12 +82,9 @@ Assurez-vous d'avoir les outils suivants installés sur votre système :
 - Malek BelKahla
 - Elyes Bouaziz
 
----
-
-## Licence
-Ce projet est sous licence [MIT](LICENSE).
 
 ---
+
 
 Merci d'avoir joué à Tetris 3D !
 
