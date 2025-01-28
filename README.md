@@ -5,7 +5,7 @@ Tetris 3D est une implémentation moderne et immersive du jeu classique Tetris e
 ---
 
 ## Aperçu
-![Capture d'écran du gameplay](path/to/screenshot.jpg)  
+![Capture d'écran du gameplay](docs/Gameplay.png)  
 *Une capture d’écran montrant un tetromino en mouvement dans la matrice 3D.*
 
 ---
