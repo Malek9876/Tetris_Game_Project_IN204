@@ -5,14 +5,13 @@
 #include <iostream>
 #include <tuple>
 
-int n = 10; // Grid length
-float floor_pos = 0.0f;
-float wall_pos=n;
-bool isPaused = false;
+
+float floor_pos = 0.0f ;
+float wall_pos = 10 ;
+bool isPaused = false ; // Pause flag
 // Camera state variables
 float cameraYaw = 0.0f;    // Rotation around the local Y-axis
 float cameraPitch = 0.0f;  // Rotation around the local X-axis
-// float cameraDistance = 20.0f; // Distance from the target (zoom level)
 float initialCameraYaw = 0.0f;
 float initialCameraPitch = 0.0f;
 float initialCameraDistance = 20.0f;
@@ -55,9 +54,9 @@ public:
     void updatePosition(float fallSpeed) {
         for (auto& pos : blockPositions) {
             std::get<1>(pos) -= fallSpeed;
-            // if (std::get<1>(pos) <= 1.0f) {
-            //     std::get<1>(pos) = 1.0f; // Reset position if it goes below the grid
-            // }
+             if (std::get<1>(pos) <= 1.0f) {
+                std::get<1>(pos) = 1.0f; // Reset position if it goes below the grid
+             }
         }
     }
     const std::vector<std::tuple<float, float, float>>& getBlockPositions() const {
@@ -163,12 +162,11 @@ private:
     float rotationY ;
     float rotationZ ;
 
-
     // Initialize the blocks of the tetromino based on its shape
     void initializeShape() {
-        float initial_lower_Y = floor(4*n/3)+0.5 ;
-        float initial_lower_X = floor(n/2) + 0.5;
-        float initial_lower_Z =floor(n/2) + 0.5;
+        float initial_lower_Y = floor(4*wall_pos/3)+0.5 ;
+        float initial_lower_X = floor(wall_pos/2) + 0.5;
+        float initial_lower_Z =floor(wall_pos/2) + 0.5;
         switch (shape) {
             case I:
                 blocks = {{{1}, {1}, {1}, {1}}};
@@ -193,7 +191,7 @@ private:
         }
     }
 
-
+    // Update block positions after rotation
     void updateBlockPositionsAfterRotation(int axis, float angle) {
     // Calculate center of the tetromino
     float centerX = 0, centerY = 0, centerZ = 0;
@@ -252,7 +250,6 @@ private:
 
 // Global variables for Tetrominoes and fall speed
 std::vector<tetromino> tetrominoes;
-
 
 
 // Function to display a Tetromino
@@ -317,9 +314,6 @@ void displayTetromino(const tetromino& t, int color) {
 
 
 
-
-
-
 void rotateTetromino(int axis) {
     if (selectedTetromino >= tetrominoes.size()) return;
    
@@ -344,39 +338,39 @@ void init() {
 void displayGrid() {
     
     glBegin(GL_LINES);
-    for (int i = 0; i <= n; i++)
+    for (int i = 0; i <= wall_pos; i++)
         {
         // set colour
         glColor3f(1, 0, 0);
 
         // x-z axis
         glVertex3f(i, 0, 0);
-        glVertex3f(i, 0, n);
+        glVertex3f(i, 0, wall_pos);
 
         glVertex3f(0, 0, i);
-        glVertex3f(n, 0, i);
+        glVertex3f(wall_pos, 0, i);
         
         glColor3f(0, 1, 0);
         // y-z axis
         glVertex3f(0, i, 0);
-        glVertex3f(0, i, n);
+        glVertex3f(0, i, wall_pos);
 
-        glVertex3f(0, n+i, 0);
-        glVertex3f(0, n+i, n);
+        glVertex3f(0, wall_pos+i, 0);
+        glVertex3f(0, wall_pos+i, wall_pos);
 
         glVertex3f(0, 0, i);
-        glVertex3f(0, 2*n, i);
+        glVertex3f(0, 2*wall_pos, i);
 
         glColor3f(0, 1, 1);
         // x-y axis
         glVertex3f(i, 0, 0);
-        glVertex3f(i, 2*n, 0);
+        glVertex3f(i, 2*wall_pos, 0);
 
         glVertex3f(0, i, 0);
-        glVertex3f(n, i, 0);
+        glVertex3f(wall_pos, i, 0);
 
-        glVertex3f(0, n+i, 0);
-        glVertex3f(n, n+i, 0);
+        glVertex3f(0, wall_pos+i, 0);
+        glVertex3f(wall_pos, wall_pos+i, 0);
         }
     glEnd();
 }
@@ -397,16 +391,13 @@ void updateCamera() {
 void display() {
    
     updateCamera(); // Update the camera view
-
-    displayGrid();
-
+    displayGrid(); // Display the grid
     // Display all Tetrominoes
     for (size_t i = 0; i < tetrominoes.size(); ++i) {
         displayTetromino(tetrominoes[i], i % 6); // Display each Tetromino with a different color
         
     }
     glPopMatrix();
-
     glutSwapBuffers();
     glFlush();
 }
@@ -426,9 +417,9 @@ bool checkCollision(const tetromino& t) {
             const auto& otherPositions = tetrominoes[i].getBlockPositions();
             for(const auto& pos : positions) {
                 for(const auto& otherPos : otherPositions) {
-                    if(std::abs(std::get<0>(pos) - std::get<0>(otherPos)) < 0.5f &&
+                    if(std::abs(std::get<0>(pos) - std::get<0>(otherPos)) < 1.0f &&
                         std::abs(std::get<1>(pos) - std::get<1>(otherPos)) <1.5f  &&
-                       std::abs(std::get<2>(pos) - std::get<2>(otherPos)) < 0.5f) {
+                       std::abs(std::get<2>(pos) - std::get<2>(otherPos)) < 1.0f) {
                         return true;
                     }
                 }
@@ -443,8 +434,6 @@ void timer(int value) {
     if (!isPaused) {
     if (selectedTetromino < tetrominoes.size()) {
         tetromino& current = tetrominoes[selectedTetromino];
-       
-
         if (checkCollision(current)) {
             selectedTetromino++;
             tetrominoes.push_back(tetromino(static_cast<tetromino::Shape>(rand() % 5)));
@@ -453,8 +442,6 @@ void timer(int value) {
             current.move(0, -1.0f, 0);  // Complete the movement
         }
     }
-    
-    //glutPostRedisplay();
     glutTimerFunc(fallInterval, timer, 0);
     }
     else {
@@ -488,19 +475,15 @@ void mouseMotion(int x, int y) {
         // Calculate mouse movement
         float deltaX = (x - lastMouseX) * 0.2f; // Sensitivity factor
         float deltaY = (y - lastMouseY) * 0.2f;
-
+        
         // Update yaw and pitch
         cameraYaw += deltaX;
         cameraPitch += deltaY;
-
-        // Clamp pitch to avoid flipping (optional)
-        //if (cameraPitch > 89.0f) cameraPitch = 89.0f;
-        //if (cameraPitch < -89.0f) cameraPitch = -89.0f;
-
+        
         // Update last mouse position
         lastMouseX = x;
         lastMouseY = y;
-
+        
         // Redraw the scene with the updated camera
         glutPostRedisplay();
     } else if (isPanning) {
@@ -602,7 +585,6 @@ void keyboard(unsigned char key, int x, int y) {
             break;
 
         default:
-            // No action for other keys
             break;
     }
     glutPostRedisplay();
