@@ -24,7 +24,7 @@ int fallInterval = 2500; // Time interval in milliseconds
 // Global variables for mouse control
 float angleX = 0.0f;
 float angleY = 0.0f;
-float zoom = 0.35f;
+float zoom = 0.5f;
 float panX = 0.0f;
 float panY = 0.0f;
 int lastMouseX = 0;
